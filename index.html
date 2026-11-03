@@ -198,6 +198,23 @@
                         <div id="dashboard-stock-alerts" class="space-y-3 flex-1 overflow-y-auto max-h-[300px] pr-1"></div>
                     </div>
                 </div>
+                <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                    <div class="xl:col-span-2 bg-slate-900 rounded-2xl p-5 border border-slate-800 shadow-sm">
+                        <div class="flex items-center justify-between mb-3"><div><h3 class="font-bold text-base text-white">Sales performance</h3><p class="text-xs text-slate-400">Revenue from recorded orders · last 6 months</p></div><span class="text-xs text-pink-500 font-semibold">MVR</span></div>
+                        <div class="h-56"><canvas id="dashboard-sales-chart"></canvas></div>
+                    </div>
+                    <div class="bg-slate-900 rounded-2xl p-5 border border-slate-800 shadow-sm">
+                        <h3 class="font-bold text-base text-white mb-1">Order status</h3><p class="text-xs text-slate-400 mb-3">Current order pipeline</p><div id="dashboard-order-status"></div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-slate-900 rounded-2xl p-5 border border-slate-800 shadow-sm">
+                        <h3 class="font-bold text-base text-white mb-1">Best-selling products</h3><p class="text-xs text-slate-400 mb-3">Based on units in non-cancelled orders</p><div id="dashboard-best-sellers"></div>
+                    </div>
+                    <div class="bg-slate-900 rounded-2xl p-5 border border-slate-800 shadow-sm">
+                        <h3 class="font-bold text-base text-white mb-1">Recent activity</h3><p class="text-xs text-slate-400 mb-3">Latest recorded orders</p><div id="dashboard-activity"></div>
+                    </div>
+                </div>
             </section>
 
             <!-- 2. INVENTORY TAB -->
@@ -503,6 +520,34 @@
                     <button onclick="quickStockAdd(${item.id})" class="text-pink-400 font-bold hover:underline">+5 Stock</button>
                 </div>
             `).join('') : `<div class="text-xs text-slate-500 text-center py-6">All stock levels are healthy!</div>`;
+
+            const statusCounts = ['Pending','Paid','Packed','Shipped','Cancelled'].map(status => ({status, count: orders.filter(o => o.status === status).length}));
+            document.getElementById('dashboard-order-status').innerHTML = statusCounts.map(x => `
+                <div class="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
+                    <span class="text-xs text-slate-600">${x.status}</span><strong class="text-sm text-slate-800">${x.count}</strong>
+                </div>`).join('');
+
+            const soldByProduct = {};
+            orders.filter(o => o.status !== 'Cancelled').forEach(o => (o.items || []).forEach(item => {
+                const key = item.productId || item.name;
+                if (!soldByProduct[key]) soldByProduct[key] = {name: item.name, qty: 0, revenue: 0};
+                soldByProduct[key].qty += Number(item.qty || 0);
+                soldByProduct[key].revenue += Number(item.price || 0) * Number(item.qty || 0);
+            }));
+            const bestSellers = Object.values(soldByProduct).sort((a,b) => b.qty-a.qty).slice(0,4);
+            document.getElementById('dashboard-best-sellers').innerHTML = bestSellers.length ? bestSellers.map(p => `
+                <div class="flex items-center justify-between gap-3 py-2 border-b border-slate-100 last:border-0">
+                    <span class="text-xs text-slate-700 truncate">${p.name}</span><span class="text-xs font-bold text-slate-800 whitespace-nowrap">${p.qty} sold</span>
+                </div>`).join('') : '<p class="text-xs text-slate-500 py-3">Sales will appear here when orders are recorded.</p>';
+
+            const activity = orders.slice().sort((a,b) => new Date(b.date)-new Date(a.date)).slice(0,4);
+            document.getElementById('dashboard-activity').innerHTML = activity.length ? activity.map(o => `
+                <div class="flex items-start gap-3 py-2 border-b border-slate-100 last:border-0">
+                    <span class="mt-1 h-2 w-2 rounded-full bg-pink-500 shrink-0"></span>
+                    <div class="min-w-0 flex-1"><p class="text-xs font-semibold text-slate-800 truncate">${o.id} · ${o.igHandle}</p><p class="text-[10px] text-slate-500">${o.date} · ${o.status} · MVR ${Number(o.total || 0).toFixed(2)}</p></div>
+                </div>`).join('') : '<p class="text-xs text-slate-500 py-3">No recent activity yet.</p>';
+
+            renderLiveCharts('dashboard-sales-chart', 'dashboard-products-chart', 'dashboard');
         }
 
         function quickStockAdd(id) {
@@ -713,30 +758,34 @@
             toast(`Deleted order ${removed.id}`, () => { orders.splice(idx, 0, removed); refreshAll(); });
         }
 
-        let monthlySalesChart = null;
-        let topProductsChart = null;
+        const liveChartInstances = {};
+        function renderLiveCharts(salesCanvasId, productsCanvasId, key) {
+            if (typeof Chart === 'undefined') return;
+            const salesCanvas = document.getElementById(salesCanvasId);
+            const productsCanvas = document.getElementById(productsCanvasId);
+            if (!salesCanvas || !productsCanvas) return;
+            if (liveChartInstances[key]) liveChartInstances[key].forEach(chart => chart.destroy());
+            const now = new Date();
+            const monthKeys = [];
+            for (let offset = 5; offset >= 0; offset--) {
+                const d = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+                monthKeys.push({key: `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`, label: d.toLocaleString('en', {month:'short'})});
+            }
+            const revenueByMonth = monthKeys.map(m => orders.filter(o => o.status !== 'Cancelled' && String(o.date || '').slice(0,7) === m.key).reduce((sum,o) => sum + Number(o.total || 0), 0));
+            const sold = {};
+            orders.filter(o => o.status !== 'Cancelled').forEach(o => (o.items || []).forEach(item => {
+                const key = item.productId || item.name;
+                if (!sold[key]) sold[key] = {name:item.name, qty:0};
+                sold[key].qty += Number(item.qty || 0);
+            }));
+            const top = Object.values(sold).sort((a,b)=>b.qty-a.qty).slice(0,5);
+            const baseOptions = {responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}};
+            const salesChart = new Chart(salesCanvas.getContext('2d'), {type:'line', data:{labels:monthKeys.map(m=>m.label), datasets:[{label:'Revenue (MVR)',data:revenueByMonth,borderColor:'#db2777',backgroundColor:'rgba(219,39,119,.10)',fill:true,tension:.35,pointRadius:3}]}, options:{...baseOptions, scales:{y:{beginAtZero:true,ticks:{callback:value=>'MVR '+value}}}}});
+            const productsChart = new Chart(productsCanvas.getContext('2d'), {type:'bar', data:{labels:top.map(p=>p.name),datasets:[{label:'Units sold',data:top.map(p=>p.qty),backgroundColor:'#db2777',borderRadius:6}]}, options:{...baseOptions,indexAxis:'y',scales:{x:{beginAtZero:true,ticks:{precision:0}}}}});
+            liveChartInstances[key] = [salesChart, productsChart];
+        }
         function renderAnalytics() {
-            if (monthlySalesChart) monthlySalesChart.destroy();
-            if (topProductsChart) topProductsChart.destroy();
-            const ctx1 = document.getElementById('chart-monthly-sales').getContext('2d');
-            monthlySalesChart = new Chart(ctx1, {
-                type: 'line',
-                data: {
-                    labels: ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-                    datasets: [{ label: 'Sales Revenue (MVR)', data: [2400, 3800, 4200, 5100, 6800, 8400], borderColor: '#10b981', fill: true, backgroundColor: 'rgba(16,185,129,0.08)', tension: 0.4 }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-            });
-
-            const ctx2 = document.getElementById('chart-top-products').getContext('2d');
-            topProductsChart = new Chart(ctx2, {
-                type: 'bar',
-                data: {
-                    labels: products.slice(0, 4).map(p => p.name),
-                    datasets: [{ label: 'Stock Level', data: products.slice(0, 4).map(p => p.stock), backgroundColor: '#ec4899', borderRadius: 6 }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-            });
+            renderLiveCharts('chart-monthly-sales', 'chart-top-products', 'analytics');
         }
 
         document.getElementById('open-mobile-menu')?.addEventListener('click', () => {
