@@ -277,10 +277,38 @@
 
             <!-- 5. ANALYTICS TAB -->
             <section id="tab-analytics" class="tab-content hidden space-y-6">
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 h-80 shadow-sm"><canvas id="chart-monthly-sales"></canvas></div>
-                    <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 h-80 shadow-sm"><canvas id="chart-top-products"></canvas></div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                    <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800"><p class="text-xs text-slate-400">Selected month revenue</p><p id="biz-month-revenue" class="text-xl font-bold text-white mt-2">MVR 0.00</p></div>
+                    <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800"><p class="text-xs text-slate-400">Product gross profit</p><p id="biz-gross-profit" class="text-xl font-bold text-emerald-400 mt-2">MVR 0.00</p></div>
+                    <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800"><p class="text-xs text-slate-400">Operating expenses</p><p id="biz-expenses" class="text-xl font-bold text-amber-400 mt-2">MVR 0.00</p></div>
+                    <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800"><p class="text-xs text-slate-400">Estimated net profit</p><p id="biz-net-profit" class="text-xl font-bold text-pink-400 mt-2">MVR 0.00</p></div>
                 </div>
+                <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4"><div><h3 class="font-bold text-white">Monthly performance</h3><p class="text-xs text-slate-400">Revenue compared with product cost and expenses</p></div><div class="flex gap-2"><input id="business-month" type="month" class="bg-slate-950 border border-slate-700 text-white rounded-lg px-3 py-2 text-xs" onchange="renderBusinessInsights()"><button onclick="downloadMonthlyReport()" class="px-3 py-2 rounded-lg bg-pink-600 hover:bg-pink-500 text-white text-xs font-bold"><i class="fa-solid fa-download mr-1"></i>Download report</button></div></div>
+                    <div id="business-month-bars" class="space-y-4"></div>
+                    <div class="flex flex-wrap gap-4 mt-4 text-[11px] text-slate-400"><span>■ Revenue</span><span>■ Product cost</span><span>■ Expenses</span></div>
+                </div>
+                <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 space-y-4">
+                        <div><h3 class="font-bold text-white">Record an expense</h3><p class="text-xs text-slate-400">Rent, delivery, packaging, marketing and other business costs</p></div>
+                        <form id="expense-form" onsubmit="saveExpense(event)" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <input id="expense-description" required maxlength="80" placeholder="Expense description" class="sm:col-span-2 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+                            <select id="expense-category" class="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white"><option>Rent</option><option>Delivery</option><option>Packaging</option><option>Marketing</option><option>Utilities</option><option>Other</option></select>
+                            <input id="expense-amount" type="number" min="0.01" step="0.01" required placeholder="Amount (MVR)" class="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+                            <input id="expense-date" type="date" required class="sm:col-span-2 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
+                            <button class="sm:col-span-2 bg-pink-600 hover:bg-pink-500 text-white rounded-lg py-2.5 text-sm font-bold">Save expense</button>
+                        </form>
+                        <div><h4 class="text-xs font-bold text-slate-300 mb-2">Expenses for selected month</h4><div id="business-expense-list" class="space-y-2"></div></div>
+                    </div>
+                    <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800">
+                        <h3 class="font-bold text-white">Profit by product</h3><p class="text-xs text-slate-400 mb-3">Sales less recorded unit cost, excluding cancelled orders</p><div id="business-product-profit" class="space-y-3"></div>
+                    </div>
+                </div>
+                <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800">
+                    <h3 class="font-bold text-white">Customer purchase history</h3><p class="text-xs text-slate-400 mb-3">Lifetime orders and spend by Instagram customer</p>
+                    <div class="overflow-x-auto"><table class="w-full text-left text-sm"><thead class="text-[10px] uppercase text-slate-400 border-b border-slate-700"><tr><th class="py-3 pr-3">Customer</th><th class="py-3 pr-3">Orders</th><th class="py-3 pr-3">Items</th><th class="py-3">Total spend</th></tr></thead><tbody id="business-customer-history"></tbody></table></div>
+                </div>
+                <p class="text-[11px] text-slate-500">Profit is an estimate: new orders save the product cost at the time of sale; older orders use the current product cost where no historical cost was recorded. Net profit subtracts expenses entered here. Add all relevant expenses for a more complete result.</p>
             </section>
         </main>
     </div>
@@ -402,6 +430,7 @@
         let products = loadKey('ig_products', initialProducts);
         let orders = loadKey('ig_orders', initialOrders);
         let chats = loadKey('ig_chats', initialChats);
+        let expenses = loadKey('ig_expenses', []);
         let activeChatId = chats[0]?.id || null;
         let orderCart = [];
 
@@ -410,6 +439,7 @@
                 localStorage.setItem('ig_products', JSON.stringify(products));
                 localStorage.setItem('ig_orders', JSON.stringify(orders));
                 localStorage.setItem('ig_chats', JSON.stringify(chats));
+                localStorage.setItem('ig_expenses', JSON.stringify(expenses));
                 updateBadges();
             } catch (e) { console.error("Storage error", e); }
         }
@@ -445,10 +475,11 @@
 
         function resetFullApp() {
             confirmDialog("Reset all products, orders, and chats to default state?", () => {
-                ['ig_products', 'ig_orders', 'ig_chats'].forEach(key => localStorage.removeItem(key));
+                ['ig_products', 'ig_orders', 'ig_chats', 'ig_expenses'].forEach(key => localStorage.removeItem(key));
                 products = [...initialProducts];
                 orders = [...initialOrders];
                 chats = [...initialChats];
+                expenses = [];
                 saveState();
                 refreshAll();
                 toast("App reset to default state");
@@ -691,7 +722,7 @@
                 igHandle: document.getElementById('order-ig').value,
                 phone: document.getElementById('order-phone').value,
                 address: document.getElementById('order-address').value,
-                items: [...orderCart],
+                items: orderCart.map(item => ({ ...item, cost: Number(item.cost ?? products.find(p => p.id === item.productId)?.cost ?? 0) })),
                 total: orderCart.reduce((s, i) => s + (i.price * i.qty), 0),
                 status: document.getElementById('order-status').value,
                 payment: document.getElementById('order-payment').value
@@ -802,8 +833,50 @@
             }
             liveChartInstances[key] = charts;
         }
+        function selectedBusinessMonth() {
+            const input=document.getElementById('business-month');
+            if(!input.value) input.value=new Date().toISOString().slice(0,7);
+            return input.value;
+        }
+        function monthOrders(month) { return orders.filter(o=>o.status!=='Cancelled'&&String(o.date||'').slice(0,7)===month); }
+        function orderGrossProfit(order) {
+            return (order.items||[]).reduce((sum,item)=>{const p=products.find(x=>x.id===item.productId);const cost=Number(item.cost??p?.cost??Number(item.price||0)*.5);return sum+(Number(item.price||0)-cost)*Number(item.qty||0);},0);
+        }
+        function escapeBusinessText(v) { return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+        function renderBusinessInsights() {
+            const month=selectedBusinessMonth(), sales=monthOrders(month), revenue=sales.reduce((a,o)=>a+Number(o.total||0),0), gross=sales.reduce((a,o)=>a+orderGrossProfit(o),0);
+            const monthExpenses=expenses.filter(e=>String(e.date||'').slice(0,7)===month), expenseTotal=monthExpenses.reduce((a,e)=>a+Number(e.amount||0),0);
+            document.getElementById('biz-month-revenue').textContent='MVR '+revenue.toFixed(2);
+            document.getElementById('biz-gross-profit').textContent='MVR '+gross.toFixed(2);
+            document.getElementById('biz-expenses').textContent='MVR '+expenseTotal.toFixed(2);
+            document.getElementById('biz-net-profit').textContent='MVR '+(gross-expenseTotal).toFixed(2);
+            const months=[];for(let n=5;n>=0;n--){const d=new Date(Number(month.slice(0,4)),Number(month.slice(5,7))-1-n,1);months.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'));}
+            const stats=months.map(m=>{const os=monthOrders(m),rev=os.reduce((a,o)=>a+Number(o.total||0),0),gp=os.reduce((a,o)=>a+orderGrossProfit(o),0),ex=expenses.filter(e=>String(e.date||'').slice(0,7)===m).reduce((a,e)=>a+Number(e.amount||0),0);return {m,rev,cost:rev-gp,ex};});
+            const max=Math.max(1,...stats.flatMap(x=>[x.rev,x.cost,x.ex]));
+            document.getElementById('business-month-bars').innerHTML=stats.map(x=>`<div><div class="flex justify-between text-xs mb-1"><span class="text-slate-300">${new Date(Number(x.m.slice(0,4)),Number(x.m.slice(5,7))-1,1).toLocaleString('en',{month:'short',year:'numeric'})}</span><span class="text-slate-400">MVR ${x.rev.toFixed(0)}</span></div><div class="flex h-3 rounded-full overflow-hidden bg-slate-800"><span title="Revenue" style="width:${x.rev/max*100}%;background:#db2777"></span><span title="Product cost" style="width:${x.cost/max*100}%;background:#64748b"></span><span title="Expenses" style="width:${x.ex/max*100}%;background:#f59e0b"></span></div></div>`).join('');
+            document.getElementById('business-expense-list').innerHTML=monthExpenses.length?monthExpenses.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(e=>`<div class="flex items-center justify-between gap-3 bg-slate-950 rounded-lg p-3"><div class="min-w-0"><p class="text-xs text-white font-semibold truncate">${escapeBusinessText(e.description)}</p><p class="text-[10px] text-slate-500">${escapeBusinessText(e.category)} · ${escapeBusinessText(e.date)}</p></div><div class="flex items-center gap-3"><b class="text-xs text-amber-400 whitespace-nowrap">MVR ${Number(e.amount).toFixed(2)}</b><button onclick="deleteExpense('${e.id}')" class="text-rose-400 text-xs">✕</button></div></div>`).join(''):'<p class="text-xs text-slate-500">No expenses recorded for this month.</p>';
+            const totals={};sales.forEach(o=>(o.items||[]).forEach(i=>{const k=i.productId||i.name;if(!totals[k])totals[k]={name:i.name,qty:0,rev:0,cost:0};const q=Number(i.qty||0),c=Number(i.cost??products.find(p=>p.id===i.productId)?.cost??Number(i.price||0)*.5);totals[k].qty+=q;totals[k].rev+=Number(i.price||0)*q;totals[k].cost+=c*q;}));
+            const ranked=Object.values(totals).sort((a,b)=>(b.rev-b.cost)-(a.rev-a.cost));
+            document.getElementById('business-product-profit').innerHTML=ranked.length?ranked.map(p=>`<div class="flex justify-between gap-3 border-b border-slate-800 pb-2"><div class="min-w-0"><p class="text-xs text-slate-200 truncate">${escapeBusinessText(p.name)}</p><p class="text-[10px] text-slate-500">${p.qty} sold · Revenue MVR ${p.rev.toFixed(2)}</p></div><b class="text-xs text-emerald-400 whitespace-nowrap">MVR ${(p.rev-p.cost).toFixed(2)}</b></div>`).join(''):'<p class="text-xs text-slate-500">Product profit will appear when orders are recorded.</p>';
+            const customers={};orders.filter(o=>o.status!=='Cancelled').forEach(o=>{const k=String(o.igHandle||'Unknown').toLowerCase();if(!customers[k])customers[k]={handle:o.igHandle||'Unknown',orders:0,items:0,spend:0};customers[k].orders++;customers[k].spend+=Number(o.total||0);customers[k].items+=(o.items||[]).reduce((a,i)=>a+Number(i.qty||0),0);});
+            document.getElementById('business-customer-history').innerHTML=Object.values(customers).sort((a,b)=>b.spend-a.spend).map(c=>`<tr class="border-b border-slate-800"><td class="py-3 pr-3 text-pink-300 font-semibold">${escapeBusinessText(c.handle)}</td><td class="py-3 pr-3 text-slate-300">${c.orders}</td><td class="py-3 pr-3 text-slate-300">${c.items}</td><td class="py-3 text-white font-bold">MVR ${c.spend.toFixed(2)}</td></tr>`).join('')||'<tr><td colspan="4" class="py-4 text-center text-slate-500">No customer purchases recorded yet.</td></tr>';
+        }
+        function saveExpense(e) {
+            e.preventDefault();const amount=Number(document.getElementById('expense-amount').value);if(!Number.isFinite(amount)||amount<=0){toast('Enter a valid expense amount');return;}
+            expenses.unshift({id:'EXP-'+Date.now(),description:document.getElementById('expense-description').value.trim(),category:document.getElementById('expense-category').value,amount,date:document.getElementById('expense-date').value});
+            saveState();document.getElementById('expense-form').reset();document.getElementById('expense-date').value=new Date().toISOString().slice(0,10);renderBusinessInsights();toast('Expense saved');
+        }
+        function deleteExpense(id) { confirmDialog('Delete this expense record?',()=>{expenses=expenses.filter(e=>e.id!==id);saveState();renderBusinessInsights();toast('Expense deleted');}); }
+        function downloadMonthlyReport() {
+            const month=selectedBusinessMonth(),os=monthOrders(month),revenue=os.reduce((a,o)=>a+Number(o.total||0),0),gross=os.reduce((a,o)=>a+orderGrossProfit(o),0),ex=expenses.filter(e=>String(e.date||'').slice(0,7)===month),expenseTotal=ex.reduce((a,e)=>a+Number(e.amount||0),0);
+            const rows=[['Styve Monthly Business Report',month],['Metric','MVR'],['Revenue',revenue.toFixed(2)],['Product gross profit',gross.toFixed(2)],['Operating expenses',expenseTotal.toFixed(2)],['Estimated net profit',(gross-expenseTotal).toFixed(2)],[],['Order ID','Date','Customer','Status','Revenue','Product gross profit']];
+            os.forEach(o=>rows.push([o.id,o.date,o.igHandle,o.status,Number(o.total||0).toFixed(2),orderGrossProfit(o).toFixed(2)]));rows.push([],['Expense date','Category','Description','Amount']);ex.forEach(e=>rows.push([e.date,e.category,e.description,Number(e.amount||0).toFixed(2)]));
+            const csv=rows.map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n'),blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='styve-report-'+month+'.csv';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+        }
         function renderAnalytics() {
-            renderLiveCharts('chart-monthly-sales', 'chart-top-products', 'analytics');
+            if(!document.getElementById('business-month').value)document.getElementById('business-month').value=new Date().toISOString().slice(0,7);
+            if(!document.getElementById('expense-date').value)document.getElementById('expense-date').value=new Date().toISOString().slice(0,10);
+            renderBusinessInsights();
         }
 
         document.getElementById('open-mobile-menu')?.addEventListener('click', () => {
