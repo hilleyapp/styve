@@ -348,7 +348,7 @@
                         <button type="button" onclick="startBarcodeScanner()" class="px-3 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-xl text-xs font-bold whitespace-nowrap"><i class="fa-solid fa-barcode mr-1"></i>Scan</button>
                         <button type="button" onclick="lookupProductBarcode()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold">Find</button>
                     </div>
-                    <p id="barcode-lookup-status" class="text-[11px] text-slate-500">Scan a product barcode or enter it manually to look up its details and photo.</p>
+                    <p id="barcode-lookup-status" class="text-[11px] text-slate-500">Tap Scan and allow camera access to read a barcode, or enter it manually and tap Find to search product details and photos.</p>
                     <div id="barcode-scanner-panel" class="hidden space-y-2">
                         <video id="barcode-video" autoplay playsinline class="w-full max-h-48 rounded-lg bg-black object-cover"></video>
                         <button type="button" onclick="stopBarcodeScanner()" class="w-full px-3 py-2 bg-slate-800 text-slate-200 rounded-lg text-xs font-semibold">Stop camera</button>
@@ -798,6 +798,21 @@
         let barcodeStream = null;
         let barcodeScanActive = false;
         let barcodeDetector = null;
+        let barcodeReaderControls = null;
+        let zxingLoadPromise = null;
+
+        function loadZXingBrowser() {
+            if (window.ZXingBrowser) return Promise.resolve(window.ZXingBrowser);
+            if (zxingLoadPromise) return zxingLoadPromise;
+            zxingLoadPromise = new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = 'https://unpkg.com/@zxing/browser@0.1.5/umd/index.min.js';
+                script.onload = () => window.ZXingBrowser ? resolve(window.ZXingBrowser) : reject(new Error('Barcode reader library did not load'));
+                script.onerror = () => reject(new Error('Could not load barcode reader library'));
+                document.head.appendChild(script);
+            });
+            return zxingLoadPromise;
+        }
 
         function updateProductImagePreview() {
             const url = document.getElementById('prod-image').value.trim();
@@ -849,46 +864,80 @@
 
         async function startBarcodeScanner() {
             const status = document.getElementById('barcode-lookup-status');
-            if (!('BarcodeDetector' in window)) {
-                status.textContent = 'Live barcode scanning is not supported by this browser. Enter the barcode manually and tap Find.';
+            const video = document.getElementById('barcode-video');
+            if (!navigator.mediaDevices?.getUserMedia) {
+                status.textContent = 'Camera access is unavailable. Open Styve over HTTPS in a supported browser, or enter the barcode manually.';
                 return;
             }
+            stopBarcodeScanner();
+            document.getElementById('barcode-scanner-panel').classList.remove('hidden');
+            barcodeScanActive = true;
+            status.textContent = 'Requesting camera permission… Allow access when your browser asks, then point the camera at the product barcode.';
             try {
-                barcodeDetector = new BarcodeDetector({ formats: ['ean_13','ean_8','upc_a','upc_e','code_128'] });
-                barcodeStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
-                const video = document.getElementById('barcode-video');
-                video.srcObject = barcodeStream;
-                document.getElementById('barcode-scanner-panel').classList.remove('hidden');
-                barcodeScanActive = true;
-                status.textContent = 'Point your camera at the product barcode.';
-                const scan = async () => {
-                    if (!barcodeScanActive) return;
-                    if (video.readyState >= 2) {
-                        try {
-                            const codes = await barcodeDetector.detect(video);
-                            if (codes.length && codes[0].rawValue) {
-                                document.getElementById('prod-barcode').value = codes[0].rawValue;
-                                stopBarcodeScanner();
-                                await lookupProductBarcode();
-                                return;
+                if ('BarcodeDetector' in window) {
+                    try {
+                        barcodeDetector = new BarcodeDetector({ formats: ['ean_13','ean_8','upc_a','upc_e','code_128'] });
+                        barcodeStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+                        video.srcObject = barcodeStream;
+                        await video.play();
+                        status.textContent = 'Camera ready. Hold the barcode steady inside the camera view.';
+                        const scan = async () => {
+                            if (!barcodeScanActive) return;
+                            if (video.readyState >= 2) {
+                                try {
+                                    const codes = await barcodeDetector.detect(video);
+                                    if (codes.length && codes[0].rawValue) {
+                                        document.getElementById('prod-barcode').value = codes[0].rawValue;
+                                        stopBarcodeScanner();
+                                        status.textContent = 'Barcode captured. Searching product databases…';
+                                        await lookupProductBarcode();
+                                        return;
+                                    }
+                                } catch (error) {}
                             }
-                        } catch (error) { /* Keep scanning while the camera is active. */ }
+                            if (barcodeScanActive) requestAnimationFrame(scan);
+                        };
+                        requestAnimationFrame(scan);
+                        return;
+                    } catch (detectorError) {
+                        stopBarcodeScanner();
+                        barcodeScanActive = true;
+                        document.getElementById('barcode-scanner-panel').classList.remove('hidden');
                     }
-                    if (barcodeScanActive) requestAnimationFrame(scan);
-                };
-                video.onloadedmetadata = () => video.play().then(scan).catch(() => { status.textContent = 'Could not start camera preview.'; });
+                }
+                status.textContent = 'Loading compatible barcode scanner…';
+                const ZX = await loadZXingBrowser();
+                if (!barcodeScanActive) return;
+                const reader = new ZX.BrowserMultiFormatReader();
+                barcodeReaderControls = await reader.decodeFromVideoDevice(undefined, video, async result => {
+                    if (!result || !barcodeScanActive) return;
+                    const code = result.getText();
+                    if (!code) return;
+                    document.getElementById('prod-barcode').value = code;
+                    stopBarcodeScanner();
+                    status.textContent = 'Barcode captured. Searching product databases…';
+                    await lookupProductBarcode();
+                });
+                status.textContent = 'Camera ready. Hold the barcode steady inside the camera view.';
             } catch (error) {
-                status.textContent = 'Camera access was blocked or unavailable. Allow camera access, or enter the barcode manually.';
                 stopBarcodeScanner();
+                const denied = error?.name === 'NotAllowedError' || error?.name === 'PermissionDeniedError';
+                status.textContent = denied
+                    ? 'Camera permission was denied. Allow camera access in your browser/site settings, then tap Scan again.'
+                    : 'Could not start the camera or barcode reader. Check camera access and try again, or enter the barcode manually.';
             }
         }
 
         function stopBarcodeScanner() {
             barcodeScanActive = false;
+            if (barcodeReaderControls) {
+                try { barcodeReaderControls.stop(); } catch (error) {}
+                barcodeReaderControls = null;
+            }
             if (barcodeStream) barcodeStream.getTracks().forEach(track => track.stop());
             barcodeStream = null;
             const video = document.getElementById('barcode-video');
-            if (video) video.srcObject = null;
+            if (video) { video.pause(); video.srcObject = null; }
             const panel = document.getElementById('barcode-scanner-panel');
             if (panel) panel.classList.add('hidden');
         }
