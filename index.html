@@ -6,6 +6,7 @@
     <meta name="theme-color" content="#0f172a">
     <title>Styve - Business Suite</title>
     <link rel="icon" type="image/svg+xml" href="./assets/styve-logo.svg">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
@@ -328,6 +329,18 @@
         </div>
     </div>
 
+    <div id="cloud-auth-gate" class="fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
+            <div class="flex items-center gap-3 mb-5"><img src="./assets/styve-logo.svg" alt="Styve" class="w-12 h-12 rounded-xl"><div><h1 class="text-xl font-extrabold text-white">Styve Cloud</h1><p class="text-xs text-slate-400">Sign in to sync your shop across devices</p></div></div>
+            <form id="cloud-auth-form" class="space-y-3">
+                <label class="block text-xs font-semibold text-slate-300">Email address</label><input id="cloud-email" type="email" required autocomplete="email" class="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-3 text-white" placeholder="you@example.com">
+                <label class="block text-xs font-semibold text-slate-300">Password</label><input id="cloud-password" type="password" required minlength="6" autocomplete="current-password" class="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-3 text-white" placeholder="At least 6 characters">
+                <p id="cloud-auth-status" class="text-xs text-slate-400" aria-live="polite">Sign in or create your Styve account. Your data is private to your account.</p>
+                <div class="grid grid-cols-2 gap-2"><button type="submit" class="rounded-xl bg-pink-600 px-4 py-3 text-sm font-bold text-white">Sign in</button><button type="button" id="cloud-signup" class="rounded-xl bg-slate-700 px-4 py-3 text-sm font-bold text-white">Create account</button></div>
+            </form>
+        </div>
+    </div>
+
     <!-- MODAL 1: PRODUCT MODAL -->
     <div id="product-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 space-y-4 shadow-2xl">
@@ -437,6 +450,81 @@
             }
         ];
 
+        const SUPABASE_URL = 'https://ncauwqggeoicyetunpop.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_TSOr4yScy1e2yONR3KyuCQ_0HZ1b6ox';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        let cloudUser = null, cloudReady = false, cloudSaveTimer = null, cloudChannel = null;
+        function cloudSnapshot() { return { products, orders, chats, expenses, schemaVersion: 1, updatedAt: new Date().toISOString() }; }
+        function setCloudStatus(message, isError = false) {
+            const el = document.getElementById('cloud-auth-status');
+            if (el) { el.textContent = message; el.className = 'text-xs ' + (isError ? 'text-rose-400' : 'text-slate-400'); }
+        }
+        async function writeCloudState() {
+            if (!cloudReady || !cloudUser) return;
+            const { error } = await supabaseClient.from('styve_app_state').upsert({ owner_id: cloudUser.id, data: cloudSnapshot(), updated_at: new Date().toISOString() }, { onConflict: 'owner_id' });
+            if (error) { console.error('Styve cloud save failed:', error); toast('Cloud sync failed. Changes remain saved on this device.'); }
+        }
+        function scheduleCloudSave() {
+            if (!cloudReady || !cloudUser) return;
+            clearTimeout(cloudSaveTimer); cloudSaveTimer = setTimeout(writeCloudState, 500);
+        }
+        async function applyCloudState(data) {
+            if (!data || typeof data !== 'object') return;
+            if (Array.isArray(data.products)) products = data.products;
+            if (Array.isArray(data.orders)) orders = data.orders;
+            if (Array.isArray(data.chats)) chats = data.chats;
+            if (Array.isArray(data.expenses)) expenses = data.expenses;
+            activeChatId = chats[0]?.id || null;
+            localStorage.setItem('ig_products', JSON.stringify(products));
+            localStorage.setItem('ig_orders', JSON.stringify(orders));
+            localStorage.setItem('ig_chats', JSON.stringify(chats));
+            localStorage.setItem('ig_expenses', JSON.stringify(expenses));
+            refreshAll(); renderInbox();
+            if (!document.getElementById('tab-analytics').classList.contains('hidden')) renderAnalytics();
+        }
+        function listenForCloudChanges() {
+            if (cloudChannel) supabaseClient.removeChannel(cloudChannel);
+            cloudChannel = supabaseClient.channel('styve-owner-' + cloudUser.id)
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'styve_app_state', filter: 'owner_id=eq.' + cloudUser.id }, async payload => {
+                    if (payload.new?.data) { cloudReady = false; await applyCloudState(payload.new.data); cloudReady = true; }
+                }).subscribe();
+        }
+        async function startCloudSession(session) {
+            cloudUser = session.user;
+            const gate = document.getElementById('cloud-auth-gate');
+            const { data, error } = await supabaseClient.from('styve_app_state').select('data').eq('owner_id', cloudUser.id).maybeSingle();
+            if (error) { cloudUser = null; setCloudStatus('Database setup needed: ' + error.message, true); return; }
+            gate.classList.add('hidden');
+            if (data?.data) { cloudReady = false; await applyCloudState(data.data); cloudReady = true; }
+            else { cloudReady = true; await writeCloudState(); }
+            listenForCloudChanges(); refreshAll(); renderInbox(); toast('Styve connected. Cloud sync is active.');
+        }
+        async function initCloudApp() {
+            if (!window.supabase?.createClient) { setCloudStatus('Could not load Supabase. Check your internet connection and refresh.', true); return; }
+            const { data, error } = await supabaseClient.auth.getSession();
+            if (error) { setCloudStatus(error.message, true); return; }
+            if (data.session) await startCloudSession(data.session);
+            else document.getElementById('cloud-auth-gate').classList.remove('hidden');
+            supabaseClient.auth.onAuthStateChange((_event, session) => {
+                if (session && !cloudUser) setTimeout(() => startCloudSession(session), 0);
+                if (!session) { cloudReady = false; cloudUser = null; document.getElementById('cloud-auth-gate').classList.remove('hidden'); }
+            });
+        }
+        document.getElementById('cloud-auth-form').addEventListener('submit', async e => {
+            e.preventDefault(); setCloudStatus('Signing in…');
+            const { error } = await supabaseClient.auth.signInWithPassword({ email: document.getElementById('cloud-email').value.trim(), password: document.getElementById('cloud-password').value });
+            if (error) setCloudStatus(error.message, true);
+        });
+        document.getElementById('cloud-signup').addEventListener('click', async () => {
+            setCloudStatus('Creating your account…');
+            const email = document.getElementById('cloud-email').value.trim(), password = document.getElementById('cloud-password').value;
+            if (!email || password.length < 6) { setCloudStatus('Enter a valid email and a password with at least 6 characters.', true); return; }
+            const { data, error } = await supabaseClient.auth.signUp({ email, password });
+            if (error) setCloudStatus(error.message, true);
+            else if (!data.session) setCloudStatus('Account created. Check your email to confirm, then sign in.');
+        });
+        async function signOutStyve() { const { error } = await supabaseClient.auth.signOut(); if (error) toast('Could not sign out: ' + error.message); }
+
         function loadKey(key, fallback) {
             try { const v = JSON.parse(localStorage.getItem(key)); return Array.isArray(v) ? v : fallback; }
             catch (e) { return fallback; }
@@ -456,6 +544,7 @@
                 localStorage.setItem('ig_chats', JSON.stringify(chats));
                 localStorage.setItem('ig_expenses', JSON.stringify(expenses));
                 updateBadges();
+                scheduleCloudSave();
             } catch (e) { console.error("Storage error", e); }
         }
 
@@ -1090,7 +1179,8 @@
         });
 
         document.addEventListener('DOMContentLoaded', () => {
-            refreshAll();
+            document.getElementById('cloud-auth-gate').classList.remove('hidden');
+            initCloudApp();
         });
     </script>
 </body>
