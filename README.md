@@ -1,4 +1,4 @@
-styve
+<!DOCTYPE html>
 <html lang="en" class="h-full bg-slate-900 text-slate-100">
 <head>
     <meta charset="UTF-8">
@@ -33,13 +33,13 @@ styve
         ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.2); border-radius: 9999px; }
         .ig-bg-gradient { background: linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045); }
         
-        /* Smooth scrolling fixes */
         html, body { height: 100%; overflow: auto !important; }
         body { display: flex; flex-direction: row; }
         main { overflow-y: auto !important; -webkit-overflow-scrolling: touch; }
 
         @keyframes toastIn { from {opacity:0; transform:translateY(12px)} to {opacity:1; transform:none} }
         .toast { animation: toastIn .2s ease-out; }
+        button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid #ec4899; outline-offset: 2px; }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-full">
@@ -120,32 +120,32 @@ styve
             <!-- 1. DASHBOARD TAB -->
             <section id="tab-dashboard" class="tab-content space-y-6">
                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div class="bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-800">
+                    <div class="bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-800 shadow-sm">
                         <p class="text-xs font-semibold text-slate-400 uppercase">Total Revenue</p>
                         <h3 id="stat-revenue" class="text-xl sm:text-2xl font-bold text-white mt-1">MVR 0.00</h3>
                         <span id="stat-profit-gross" class="text-xs text-emerald-400 mt-2 block">Net Profit: MVR 0</span>
                     </div>
-                    <div class="bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-800">
+                    <div class="bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-800 shadow-sm">
                         <p class="text-xs font-semibold text-slate-400 uppercase">Total Sales</p>
                         <h3 id="stat-orders" class="text-xl sm:text-2xl font-bold text-white mt-1">0 Orders</h3>
                         <span id="stat-pending-orders" class="text-xs text-slate-400 mt-2 block">0 Pending</span>
                     </div>
-                    <div class="bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-800">
+                    <div class="bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-800 shadow-sm">
                         <p class="text-xs font-semibold text-slate-400 uppercase">Stock Health</p>
                         <h3 id="stat-low-stock-count" class="text-xl sm:text-2xl font-bold text-white mt-1">0 Items Low</h3>
                         <span class="text-xs text-amber-400 mt-2 block">Requires attention</span>
                     </div>
-                    <div class="bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-800">
+                    <div class="bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-800 shadow-sm">
                         <p class="text-xs font-semibold text-slate-400 uppercase">Avg Profit Margin</p>
                         <h3 id="stat-avg-margin" class="text-xl sm:text-2xl font-bold text-white mt-1">0%</h3>
                         <span class="text-xs text-pink-400 mt-2 block">Across catalog</span>
                     </div>
                 </div>
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div class="lg:col-span-2 bg-slate-900 rounded-2xl p-5 border border-slate-800 flex flex-col">
+                    <div class="lg:col-span-2 bg-slate-900 rounded-2xl p-5 border border-slate-800 flex flex-col shadow-sm">
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="font-bold text-base text-white flex items-center gap-2"><i class="fa-solid fa-clock-rotate-left text-pink-500"></i>Recent Instagram Orders</h3>
-                            <button onclick="switchTab('orders')" class="text-xs text-pink-400 hover:text-pink-300 font-semibold">View All</button>
+                            <button onclick="switchTab('orders')" class="text-xs text-pink-400 hover:text-pink-300 font-semibold transition">View All</button>
                         </div>
                         <div class="overflow-x-auto flex-1">
                             <table class="w-full text-left text-xs">
@@ -156,7 +156,7 @@ styve
                             </table>
                         </div>
                     </div>
-                    <div class="bg-slate-900 rounded-2xl p-5 border border-slate-800 flex flex-col">
+                    <div class="bg-slate-900 rounded-2xl p-5 border border-slate-800 flex flex-col shadow-sm">
                         <h3 class="font-bold text-base text-white mb-4 flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation text-amber-500"></i>Stock Alert Center</h3>
                         <div id="dashboard-stock-alerts" class="space-y-3 flex-1 overflow-y-auto max-h-[300px] pr-1"></div>
                     </div>
@@ -165,11 +165,14 @@ styve
 
             <!-- 2. INVENTORY TAB -->
             <section id="tab-inventory" class="tab-content hidden space-y-6">
-                <div class="flex gap-4 justify-between bg-slate-900 p-4 rounded-2xl border border-slate-800 flex-wrap items-center">
-                    <input type="text" id="inventory-search" placeholder="Search by SKU or Product Name..." onkeyup="renderInventory()" class="px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm flex-1 focus:outline-none focus:border-pink-500">
-                    <button onclick="openAddProductModal()" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold rounded-xl transition flex items-center gap-1.5"><i class="fa-solid fa-plus"></i> Add Product</button>
+                <div class="flex gap-4 justify-between bg-slate-900 p-4 rounded-2xl border border-slate-800 flex-wrap items-center shadow-sm">
+                    <div class="relative flex-1 min-w-[240px]">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                        <input type="text" id="inventory-search" placeholder="Search by SKU or Product Name..." onkeyup="renderInventory()" class="w-full pl-10 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-pink-500">
+                    </div>
+                    <button onclick="openAddProductModal()" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-md"><i class="fa-solid fa-plus"></i> Add Product</button>
                 </div>
-                <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden">
+                <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-sm">
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-sm">
                             <thead class="bg-slate-800/80 text-slate-400 text-[11px] uppercase font-semibold">
@@ -183,11 +186,14 @@ styve
 
             <!-- 3. ORDERS TAB -->
             <section id="tab-orders" class="tab-content hidden space-y-6">
-                <div class="flex gap-4 justify-between bg-slate-900 p-4 rounded-2xl border border-slate-800 items-center flex-wrap">
-                    <input type="text" id="order-search" placeholder="Search orders..." onkeyup="renderOrders()" class="px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm flex-1 focus:outline-none focus:border-indigo-500">
-                    <button onclick="openNewOrderModal()" class="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5"><i class="fa-solid fa-cart-plus"></i> Log Order</button>
+                <div class="flex gap-4 justify-between bg-slate-900 p-4 rounded-2xl border border-slate-800 items-center flex-wrap shadow-sm">
+                    <div class="relative flex-1 min-w-[240px]">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                        <input type="text" id="order-search" placeholder="Search orders..." onkeyup="renderOrders()" class="w-full pl-10 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <button onclick="openNewOrderModal()" class="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-md"><i class="fa-solid fa-cart-plus"></i> Log Order</button>
                 </div>
-                <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden">
+                <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-sm">
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-sm">
                             <thead class="bg-slate-800/80 text-slate-400 text-[11px] uppercase font-semibold">
@@ -201,8 +207,8 @@ styve
 
             <!-- 4. INBOX SIMULATOR TAB -->
             <section id="tab-inbox" class="tab-content hidden flex flex-col lg:flex-row gap-4 h-[calc(100vh-140px)]">
-                <div class="w-full lg:w-80 bg-slate-900 rounded-2xl border border-slate-800 overflow-y-auto shrink-0" id="inbox-chats-list"></div>
-                <div class="flex-1 bg-slate-900 rounded-2xl border border-slate-800 flex flex-col overflow-hidden">
+                <div class="w-full lg:w-80 bg-slate-900 rounded-2xl border border-slate-800 overflow-y-auto shrink-0 shadow-sm" id="inbox-chats-list"></div>
+                <div class="flex-1 bg-slate-900 rounded-2xl border border-slate-800 flex flex-col overflow-hidden shadow-sm">
                     <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
                         <h4 id="chat-handle" class="font-bold text-white text-sm">Select a chat</h4>
                         <button onclick="convertChatToOrder()" id="convert-to-order-btn" class="hidden px-3.5 py-2 bg-gradient-to-r from-pink-500 to-rose-600 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center gap-1.5"><i class="fa-solid fa-bolt"></i> Convert to Order</button>
@@ -218,11 +224,28 @@ styve
             <!-- 5. ANALYTICS TAB -->
             <section id="tab-analytics" class="tab-content hidden space-y-6">
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="bg-slate-950 p-5 rounded-2xl border border-slate-800 h-80"><canvas id="chart-monthly-sales"></canvas></div>
-                    <div class="bg-slate-950 p-5 rounded-2xl border border-slate-800 h-80"><canvas id="chart-top-products"></canvas></div>
+                    <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 h-80 shadow-sm"><canvas id="chart-monthly-sales"></canvas></div>
+                    <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 h-80 shadow-sm"><canvas id="chart-top-products"></canvas></div>
                 </div>
             </section>
         </main>
+    </div>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-[200] flex flex-col gap-2 items-end pointer-events-none"></div>
+
+    <!-- CUSTOM CONFIRM DIALOG MODAL -->
+    <div id="confirm-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[150] flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-2xl p-6 space-y-4 shadow-2xl">
+            <div class="flex items-start gap-3">
+                <div class="w-10 h-10 shrink-0 rounded-full bg-red-500/15 text-red-400 flex items-center justify-center"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                <p id="confirm-text" class="text-sm text-slate-200 pt-1"></p>
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button id="confirm-cancel" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition">Cancel</button>
+                <button id="confirm-ok" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl text-xs font-bold transition">Confirm</button>
+            </div>
+        </div>
     </div>
 
     <!-- MODAL 1: PRODUCT MODAL -->
@@ -242,7 +265,7 @@ styve
                     <div><label class="block text-slate-400 mb-1 text-xs font-semibold">Cost (Rf)</label><input type="number" step="0.01" id="prod-cost" required class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-pink-500"></div>
                     <div><label class="block text-slate-400 mb-1 text-xs font-semibold">Price (Rf)</label><input type="number" step="0.01" id="prod-price" required class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-pink-500"></div>
                 </div>
-                <div class="flex justify-end gap-2 pt-3 border-t border-slate-800"><button type="button" onclick="closeProductModal()" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl font-semibold">Cancel</button><button type="submit" class="px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-xl font-bold">Save Product</button></div>
+                <div class="flex justify-end gap-2 pt-3 border-t border-slate-800"><button type="button" onclick="closeProductModal()" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl font-semibold transition">Cancel</button><button type="submit" class="px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-xl font-bold transition shadow-md">Save Product</button></div>
             </form>
         </div>
     </div>
@@ -266,7 +289,7 @@ styve
                     <div class="grid grid-cols-12 gap-2">
                         <select id="order-product-select" class="col-span-7 px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs focus:outline-none"></select>
                         <input type="number" id="order-product-qty" min="1" value="1" class="col-span-3 px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-center focus:outline-none">
-                        <button type="button" onclick="addItemToOrderCart()" class="col-span-2 bg-indigo-500 hover:bg-indigo-600 text-white font-bold rounded-xl text-xs">Add</button>
+                        <button type="button" onclick="addItemToOrderCart()" class="col-span-2 bg-indigo-500 hover:bg-indigo-600 text-white font-bold rounded-xl text-xs transition">Add</button>
                     </div>
                     <div id="order-cart-items" class="space-y-1 pt-1"><p class="text-slate-500 text-xs italic">No items added yet.</p></div>
                     <div class="flex justify-between items-center pt-2 border-t border-slate-800 text-xs">
@@ -280,7 +303,7 @@ styve
                     <div><label class="block text-slate-400 mb-1 text-xs font-semibold">Payment</label><select id="order-payment" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none"><option>BML Transfer</option><option>MIB Transfer</option><option>Cash on Delivery</option></select></div>
                 </div>
 
-                <div class="flex justify-end gap-2 pt-3 border-t border-slate-800"><button type="button" onclick="closeOrderModal()" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl font-semibold">Cancel</button><button type="submit" class="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl font-bold">Complete Order</button></div>
+                <div class="flex justify-end gap-2 pt-3 border-t border-slate-800"><button type="button" onclick="closeOrderModal()" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl font-semibold transition">Cancel</button><button type="submit" class="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl font-bold transition shadow-md">Complete Order</button></div>
             </form>
         </div>
     </div>
@@ -337,16 +360,37 @@ styve
             } catch (e) { console.error("Storage error", e); }
         }
 
-        function toast(msg) {
+        // Interactive Toast with Optional Undo Action
+        function toast(msg, undoCallback = null) {
+            const container = document.getElementById('toast-container');
             const el = document.createElement('div');
-            el.className = `toast bg-slate-800 border border-emerald-500/40 text-emerald-300 rounded-xl px-4 py-3 text-sm shadow-xl fixed bottom-4 right-4 z-[200]`;
-            el.textContent = msg;
-            document.body.appendChild(el);
-            setTimeout(() => el.remove(), 3000);
+            el.className = `toast pointer-events-auto bg-slate-800 border border-emerald-500/40 text-emerald-300 rounded-xl px-4 py-3 text-sm shadow-xl flex items-center gap-3`;
+            el.innerHTML = `<i class="fa-solid fa-circle-check"></i><span class="flex-1 text-slate-100">${msg}</span>`;
+            if (undoCallback) {
+                const undoBtn = document.createElement('button');
+                undoBtn.className = 'text-pink-400 hover:text-pink-300 font-bold text-xs uppercase underline';
+                undoBtn.textContent = 'Undo';
+                undoBtn.onclick = () => { undoCallback(); el.remove(); };
+                el.appendChild(undoBtn);
+            }
+            container.appendChild(el);
+            setTimeout(() => el.remove(), undoCallback ? 7000 : 3500);
+        }
+
+        // Custom Confirmation Dialog Modal
+        function confirmDialog(msg, onOk) {
+            const m = document.getElementById('confirm-modal');
+            document.getElementById('confirm-text').textContent = msg;
+            const okBtn = document.getElementById('confirm-ok');
+            const cancelBtn = document.getElementById('confirm-cancel');
+            const close = () => m.classList.add('hidden');
+            okBtn.onclick = () => { close(); onOk(); };
+            cancelBtn.onclick = close;
+            m.classList.remove('hidden');
         }
 
         function resetFullApp() {
-            if (confirm("Reset all products, orders, and chats to default state?")) {
+            confirmDialog("Reset all products, orders, and chats to default state?", () => {
                 localStorage.clear();
                 products = [...initialProducts];
                 orders = [...initialOrders];
@@ -354,7 +398,7 @@ styve
                 saveState();
                 refreshAll();
                 toast("App reset to default state");
-            }
+            });
         }
 
         function refreshAll() {
@@ -403,10 +447,9 @@ styve
             document.getElementById('stat-low-stock-count').textContent = `${products.filter(p => p.stock <= 5).length} Items Low`;
             document.getElementById('stat-avg-margin').textContent = totalRev > 0 ? `${((totalProfit / totalRev) * 100).toFixed(1)}%` : '0%';
 
-            // Recent orders
             const tbody = document.getElementById('recent-orders-tbody');
             tbody.innerHTML = orders.slice(0, 5).map(o => `
-                <tr class="hover:bg-slate-800/40">
+                <tr class="hover:bg-slate-800/40 transition">
                     <td class="px-3 py-3 font-semibold text-white">${o.igHandle}<div class="text-[10px] text-slate-400 font-normal">${o.date}</div></td>
                     <td class="px-3 py-3 text-slate-300">${o.items.length} item(s)</td>
                     <td class="px-3 py-3 font-bold text-white">MVR ${o.total.toFixed(2)}</td>
@@ -415,7 +458,6 @@ styve
                 </tr>
             `).join('') || `<tr><td colspan="5" class="p-4 text-center text-slate-500">No orders yet</td></tr>`;
 
-            // Stock alerts
             const lowStockItems = products.filter(p => p.stock <= 5);
             const alertBox = document.getElementById('dashboard-stock-alerts');
             alertBox.innerHTML = lowStockItems.length ? lowStockItems.map(item => `
@@ -438,15 +480,15 @@ styve
             const filtered = products.filter(p => p.name.toLowerCase().includes(search) || p.sku.toLowerCase().includes(search));
 
             tbody.innerHTML = filtered.map(p => `
-                <tr class="hover:bg-slate-800/40">
+                <tr class="hover:bg-slate-800/40 transition">
                     <td class="p-4"><div class="font-bold text-white">${p.name}</div><div class="text-xs text-slate-400 font-mono">${p.sku}</div></td>
                     <td class="p-4"><span class="px-2 py-1 bg-slate-800 text-slate-300 rounded-lg text-xs">${p.category}</span></td>
                     <td class="p-4 text-slate-300">MVR ${p.cost.toFixed(2)}</td>
                     <td class="p-4 font-bold text-white">MVR ${p.price.toFixed(2)}</td>
                     <td class="p-4 text-center"><span class="px-2 py-1 rounded-full text-xs font-bold ${p.stock <= 5 ? 'bg-amber-500/20 text-amber-400' : 'bg-emerald-500/20 text-emerald-400'}">${p.stock} units</span></td>
                     <td class="p-4 text-right space-x-2">
-                        <button onclick="adjustStock(${p.id}, 1)" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-xs font-bold">+</button>
-                        <button onclick="deleteProduct(${p.id})" class="text-rose-400 hover:text-rose-300 text-xs"><i class="fa-solid fa-trash"></i></button>
+                        <button onclick="adjustStock(${p.id}, 1)" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-xs font-bold transition">+</button>
+                        <button onclick="deleteProduct(${p.id})" class="text-rose-400 hover:text-rose-300 text-xs transition"><i class="fa-solid fa-trash"></i></button>
                     </td>
                 </tr>
             `).join('') || `<tr><td colspan="6" class="p-8 text-center text-slate-500">No products found.</td></tr>`;
@@ -463,13 +505,13 @@ styve
             const filtered = orders.filter(o => o.id.toLowerCase().includes(search) || o.igHandle.toLowerCase().includes(search));
 
             tbody.innerHTML = filtered.map(o => `
-                <tr class="hover:bg-slate-800/40">
+                <tr class="hover:bg-slate-800/40 transition">
                     <td class="p-4 font-mono font-bold text-white">${o.id}<div class="text-xs text-slate-400 font-normal">${o.date}</div></td>
                     <td class="p-4"><div class="font-bold text-pink-400">${o.igHandle}</div><div class="text-xs text-slate-400">${o.address}</div></td>
                     <td class="p-4 text-xs text-slate-300">${(o.items || []).map(i => `• ${i.name} (x${i.qty})`).join('<br>')}</td>
                     <td class="p-4 font-bold text-white">MVR ${o.total.toFixed(2)}</td>
-                    <td class="p-4"><select onchange="updateOrderStatus('${o.id}', this.value)" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs font-semibold"><option ${o.status==='Pending'?'selected':''}>Pending</option><option ${o.status==='Paid'?'selected':''}>Paid</option><option ${o.status==='Packed'?'selected':''}>Packed</option><option ${o.status==='Shipped'?'selected':''}>Shipped</option><option ${o.status==='Cancelled'?'selected':''}>Cancelled</option></select></td>
-                    <td class="p-4 text-right"><button onclick="deleteOrder('${o.id}')" class="text-rose-400 hover:text-rose-300"><i class="fa-solid fa-trash"></i></button></td>
+                    <td class="p-4"><select onchange="updateOrderStatus('${o.id}', this.value)" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs font-semibold focus:outline-none"><option ${o.status==='Pending'?'selected':''}>Pending</option><option ${o.status==='Paid'?'selected':''}>Paid</option><option ${o.status==='Packed'?'selected':''}>Packed</option><option ${o.status==='Shipped'?'selected':''}>Shipped</option><option ${o.status==='Cancelled'?'selected':''}>Cancelled</option></select></td>
+                    <td class="p-4 text-right"><button onclick="deleteOrder('${o.id}')" class="text-rose-400 hover:text-rose-300 transition"><i class="fa-solid fa-trash"></i></button></td>
                 </tr>
             `).join('') || `<tr><td colspan="6" class="p-8 text-center text-slate-500">No orders found.</td></tr>`;
         }
@@ -522,7 +564,6 @@ styve
             renderActiveChat();
         }
 
-        // --- ORDER CART MODAL LOGIC ---
         function openNewOrderModal() {
             orderCart = [];
             renderOrderCart();
@@ -551,7 +592,7 @@ styve
             if (!orderCart.length) {
                 container.innerHTML = `<p class="text-slate-500 text-xs italic">No items added yet.</p>`;
             } else {
-                container.innerHTML = orderCart.map((item, idx) => {
+                container.innerHTML = orderCart.map((item) => {
                     total += item.price * item.qty;
                     return `<div class="flex justify-between items-center text-xs bg-slate-900 p-2 rounded-lg border border-slate-800 text-slate-200"><span>${item.name} <strong class="text-pink-400">x${item.qty}</strong></span><span class="font-bold">MVR ${(item.price * item.qty).toFixed(2)}</span></div>`;
                 }).join('');
@@ -576,6 +617,7 @@ styve
             orders.unshift(newOrder);
             closeOrderModal();
             refreshAll();
+            confetti({ particleCount: 40, spread: 60, origin: { y: 0.7 } });
             toast("Order successfully logged!");
         }
 
@@ -619,15 +661,19 @@ styve
         }
 
         function deleteProduct(id) {
-            products = products.filter(p => p.id !== id);
+            const idx = products.findIndex(p => p.id === id);
+            if (idx < 0) return;
+            const [removed] = products.splice(idx, 1);
             refreshAll();
-            toast("Product deleted");
+            toast(`Deleted "${removed.name}"`, () => { products.splice(idx, 0, removed); refreshAll(); });
         }
 
         function deleteOrder(id) {
-            orders = orders.filter(o => o.id !== id);
+            const idx = orders.findIndex(o => o.id === id);
+            if (idx < 0) return;
+            const [removed] = orders.splice(idx, 1);
             refreshAll();
-            toast("Order deleted");
+            toast(`Deleted order ${removed.id}`, () => { orders.splice(idx, 0, removed); refreshAll(); });
         }
 
         function renderAnalytics() {
@@ -652,7 +698,6 @@ styve
             });
         }
 
-        // Mobile menu toggle listeners
         document.getElementById('open-mobile-menu')?.addEventListener('click', () => {
             document.getElementById('sidebar').classList.remove('-translate-x-full');
             document.getElementById('sidebar-backdrop').classList.remove('hidden');
