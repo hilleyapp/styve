@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#0f172a">
-    <title>Styve - Business Suite (Supabase Cloud Sync)</title>
+    <title>Styve - Business Suite</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
@@ -13,8 +13,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Canvas Confetti -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    <!-- Supabase JS Client -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Inter Font -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
@@ -35,7 +33,7 @@
         ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.2); border-radius: 9999px; }
         .ig-bg-gradient { background: linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045); }
         
-        /* Fix scrolling behavior */
+        /* Smooth scrolling fixes */
         html, body { height: 100%; overflow: auto !important; }
         body { display: flex; flex-direction: row; }
         main { overflow-y: auto !important; -webkit-overflow-scrolling: touch; }
@@ -46,41 +44,8 @@
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-full">
 
-    <!-- LOGIN SCREEN OVERLAY -->
-    <div id="login-overlay" class="fixed inset-0 bg-slate-950 z-[100] flex items-center justify-center p-4 hidden">
-        <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-3xl p-8 space-y-6 shadow-2xl">
-            <div class="text-center space-y-2">
-                <div class="w-14 h-14 rounded-2xl ig-bg-gradient mx-auto flex items-center justify-center text-white shadow-xl shadow-pink-500/20 text-2xl">
-                    <i class="fa-solid fa-store"></i>
-                </div>
-                <h1 class="text-xl font-bold text-white">Styve Business Suite</h1>
-                <p class="text-xs text-slate-400">Sign in securely with your Supabase cloud account</p>
-            </div>
-
-            <form id="login-form" onsubmit="handleAuthSubmit(event)" class="space-y-4 text-xs sm:text-sm">
-                <div>
-                    <label class="block text-slate-400 mb-1 font-semibold">Email Address</label>
-                    <input type="email" id="auth-email" required placeholder="you@example.com" class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-pink-500">
-                </div>
-                <div>
-                    <label class="block text-slate-400 mb-1 font-semibold">Password</label>
-                    <input type="password" id="auth-password" required placeholder="••••••••" class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-pink-500">
-                </div>
-
-                <div id="auth-error" class="text-red-400 text-xs text-center hidden"></div>
-
-                <button type="submit" id="auth-submit-btn" class="w-full py-3 bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white font-bold rounded-xl shadow-lg shadow-pink-500/20 transition">
-                    Sign In
-                </button>
-
-                <div class="text-center pt-2">
-                    <button type="button" onclick="toggleAuthMode()" class="text-xs text-pink-400 hover:underline">
-                        Need an account? <span id="auth-toggle-text" class="font-bold">Sign Up</span>
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
+    <!-- Mobile Sidebar Backdrop -->
+    <div id="sidebar-backdrop" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 hidden lg:hidden"></div>
 
     <!-- Main Sidebar Navigation -->
     <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 w-64 bg-slate-900 border-r border-slate-800 z-50 flex flex-col transition-transform duration-300 -translate-x-full lg:translate-x-0 shrink-0">
@@ -119,13 +84,18 @@
         </nav>
 
         <div class="p-4 border-t border-slate-800/80 bg-slate-900/50 space-y-3">
-            <div class="bg-slate-800/50 rounded-xl p-3 border border-slate-700/50 flex items-center justify-between">
-                <div>
-                    <span class="text-[10px] text-slate-400 block">Cloud Status</span>
-                    <span id="sync-status" class="text-xs font-bold text-emerald-400"><i class="fa-solid fa-circle text-[8px] mr-1"></i>Connected</span>
+            <div class="bg-slate-800/50 rounded-xl p-3 border border-slate-700/50">
+                <div class="flex items-center justify-between text-xs text-slate-400 mb-1">
+                    <span>Active Currency</span>
+                    <span class="font-bold text-white bg-slate-700 px-1.5 py-0.5 rounded">MVR (Rf)</span>
                 </div>
-                <button onclick="handleLogout()" class="px-2.5 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-semibold">Sign Out</button>
+                <div class="text-[11px] text-slate-500">Maldivian Rufiyaa Shop</div>
             </div>
+
+            <button onclick="resetFullApp()" class="w-full py-2 px-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-bold rounded-xl border border-red-500/30 transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <span>Reset Entire App</span>
+            </button>
         </div>
     </aside>
 
@@ -147,7 +117,7 @@
         </header>
 
         <main class="flex-1 p-4 sm:p-6 lg:p-8 space-y-6">
-            <!-- Tabs content views -->
+            <!-- 1. DASHBOARD OVERVIEW TAB -->
             <section id="tab-dashboard" class="tab-content space-y-6">
                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     <div class="bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-800">
@@ -183,6 +153,7 @@
                 </div>
             </section>
 
+            <!-- 2. INVENTORY TAB -->
             <section id="tab-inventory" class="tab-content hidden space-y-6">
                 <div class="flex gap-4 justify-between bg-slate-900 p-4 rounded-2xl border border-slate-800 flex-wrap">
                     <input type="text" id="inventory-search" placeholder="Search inventory..." onkeyup="renderInventory()" class="px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm flex-1">
@@ -198,6 +169,7 @@
                 </div>
             </section>
 
+            <!-- 3. ORDERS TAB -->
             <section id="tab-orders" class="tab-content hidden space-y-6">
                 <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-x-auto">
                     <table class="w-full text-left text-sm">
@@ -209,6 +181,7 @@
                 </div>
             </section>
 
+            <!-- 4. INBOX SIMULATOR TAB -->
             <section id="tab-inbox" class="tab-content hidden flex flex-col lg:flex-row gap-4">
                 <div class="w-full lg:w-80 bg-slate-900 rounded-2xl border border-slate-800 overflow-y-auto max-h-[300px] lg:max-h-[600px]" id="inbox-chats-list"></div>
                 <div class="flex-1 bg-slate-900 rounded-2xl border border-slate-800 flex flex-col min-h-[400px]">
@@ -224,6 +197,7 @@
                 </div>
             </section>
 
+            <!-- 5. ANALYTICS TAB -->
             <section id="tab-analytics" class="tab-content hidden space-y-6">
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 h-80"><canvas id="chart-monthly-sales"></canvas></div>
@@ -267,107 +241,52 @@
     </div>
 
     <script>
-        // --- SUPABASE CONFIGURATION ---
-        const SUPABASE_URL = 'YOUR_SUPABASE_URL_HERE';
-        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY_HERE';
-        
-        let supabaseClient = null;
-        try {
-            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        } catch(e) { console.error("Supabase init error", e); }
+        // --- INITIAL STATE & LOCAL STORAGE PERSISTENCE ---
+        const initialProducts = [
+            { id: 101, sku: 'SKIN-GLOW-01', name: 'Hydrating Glow Serum 30ml', category: 'Skincare', stock: 18, cost: 140.00, price: 320.00 },
+            { id: 102, sku: 'SKIN-CLEAN-02', name: 'Gentle Foaming Cleanser 150ml', category: 'Skincare', stock: 4, cost: 95.00, price: 240.00 },
+            { id: 103, sku: 'BABY-BALM-01', name: 'Organic Baby Diaper Balm 100g', category: 'Baby Care', stock: 2, cost: 80.00, price: 195.00 }
+        ];
 
-        let products = [];
-        let orders = [];
-        let chats = [];
-        let activeChatId = null;
-        let isSignUpMode = false;
-
-        async function checkUserSession() {
-            if (!supabaseClient) { document.getElementById('login-overlay').classList.remove('hidden'); return; }
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            if (!session) {
-                document.getElementById('login-overlay').classList.remove('hidden');
-            } else {
-                document.getElementById('login-overlay').classList.add('hidden');
-                loadCloudData();
+        const initialOrders = [
+            {
+                id: 'ORD-1001',
+                date: '2026-11-02',
+                igHandle: '@aishath_skincare',
+                phone: '7789123',
+                address: 'H. Sunbeam 4th Floor, Malé',
+                items: [{ productId: 101, name: 'Hydrating Glow Serum 30ml', qty: 1, price: 320.00 }],
+                total: 320.00,
+                status: 'Shipped',
+                payment: 'BML Transfer'
             }
-        }
+        ];
 
-        function toggleAuthMode() {
-            isSignUpMode = !isSignUpMode;
-            document.getElementById('auth-toggle-text').textContent = isSignUpMode ? 'Sign In' : 'Sign Up';
-            document.getElementById('auth-submit-btn').textContent = isSignUpMode ? 'Create Account' : 'Sign In';
-        }
-
-        async function handleAuthSubmit(e) {
-            e.preventDefault();
-            const email = document.getElementById('auth-email').value.trim();
-            const password = document.getElementById('auth-password').value;
-            const errEl = document.getElementById('auth-error');
-            errEl.classList.add('hidden');
-
-            let res = isSignUpMode ? await supabaseClient.auth.signUp({ email, password }) : await supabaseClient.auth.signInWithPassword({ email, password });
-
-            if (res.error) {
-                errEl.textContent = res.error.message;
-                errEl.classList.remove('hidden');
-            } else {
-                if (isSignUpMode) {
-                    alert("Account created! Check your email if verification is required, or sign in.");
-                    toggleAuthMode();
-                } else {
-                    document.getElementById('login-overlay').classList.add('hidden');
-                    loadCloudData();
-                }
+        const initialChats = [
+            {
+                id: 'chat-1',
+                handle: '@mariyam_nook',
+                avatarText: 'MN',
+                messages: [{ sender: 'them', text: 'Hello! Is the Balm in stock?' }]
             }
+        ];
+
+        function loadKey(key, fallback) {
+            try { const v = JSON.parse(localStorage.getItem(key)); return Array.isArray(v) && v.length ? v : fallback; }
+            catch (e) { return fallback; }
         }
 
-        async function handleLogout() {
-            await supabaseClient.auth.signOut();
-            location.reload();
-        }
+        let products = loadKey('ig_products', initialProducts);
+        let orders = loadKey('ig_orders', initialOrders);
+        let chats = loadKey('ig_chats', initialChats);
+        let activeChatId = chats[0]?.id || null;
 
-        async function loadCloudData() {
+        function saveState() {
             try {
-                const [pRes, oRes, cRes] = await Promise.all([
-                    supabaseClient.from('products').select('*'),
-                    supabaseClient.from('orders').select('*'),
-                    supabaseClient.from('chats').select('*')
-                ]);
-
-                products = pRes.data && pRes.data.length ? pRes.data : getDefaultProducts();
-                orders = oRes.data || [];
-                chats = cRes.data && cRes.data.length ? cRes.data : getDefaultChats();
-                
-                if (!pRes.data || pRes.data.length === 0) saveAllCloud();
-                
-                activeChatId = chats[0]?.id || null;
-                refreshAll();
-            } catch (err) {
-                console.error("Error loading cloud data", err);
-            }
-        }
-
-        async function saveAllCloud() {
-            try {
-                if (products.length) await supabaseClient.from('products').upsert(products);
-                if (orders.length) await supabaseClient.from('orders').upsert(orders);
-                if (chats.length) await supabaseClient.from('chats').upsert(chats);
-            } catch (e) { console.error("Sync error", e); }
-        }
-
-        function getDefaultProducts() {
-            return [
-                { id: 101, sku: 'SKIN-GLOW-01', name: 'Hydrating Glow Serum 30ml', category: 'Skincare', stock: 18, cost: 140.00, price: 320.00 },
-                { id: 102, sku: 'SKIN-CLEAN-02', name: 'Gentle Foaming Cleanser 150ml', category: 'Skincare', stock: 4, cost: 95.00, price: 240.00 },
-                { id: 103, sku: 'BABY-BALM-01', name: 'Organic Baby Diaper Balm 100g', category: 'Baby Care', stock: 2, cost: 80.00, price: 195.00 }
-            ];
-        }
-
-        function getDefaultChats() {
-            return [
-                { id: 'chat-1', handle: '@mariyam_nook', avatar_text: 'MN', messages: [{ sender: 'them', text: 'Hello! Is the Balm in stock?' }], prefill_cart: [103] }
-            ];
+                localStorage.setItem('ig_products', JSON.stringify(products));
+                localStorage.setItem('ig_orders', JSON.stringify(orders));
+                localStorage.setItem('ig_chats', JSON.stringify(chats));
+            } catch (e) { console.error("Storage error", e); }
         }
 
         function toast(msg) {
@@ -378,8 +297,20 @@
             setTimeout(() => el.remove(), 3000);
         }
 
+        function resetFullApp() {
+            if (confirm("Reset all products, orders, and chats to defaults?")) {
+                localStorage.clear();
+                products = [...initialProducts];
+                orders = [...initialOrders];
+                chats = [...initialChats];
+                saveState();
+                refreshAll();
+                toast("App reset to default state");
+            }
+        }
+
         function refreshAll() {
-            saveAllCloud();
+            saveState();
             renderDashboard();
             renderInventory();
             renderOrders();
@@ -404,7 +335,7 @@
             document.getElementById('stat-low-stock-count').textContent = `${products.filter(p => p.stock <= 5).length} Items Low`;
             
             const tbody = document.getElementById('recent-orders-tbody');
-            tbody.innerHTML = orders.slice(0, 5).map(o => `<tr><td class="p-3 font-bold">${o.ig_handle || o.igHandle}</td><td class="p-3">MVR ${o.total}</td><td class="p-3">${o.status}</td></tr>`).join('') || `<tr><td colspan="3" class="p-4 text-center text-slate-500">No orders yet</td></tr>`;
+            tbody.innerHTML = orders.slice(0, 5).map(o => `<tr><td class="p-3 font-bold">${o.igHandle}</td><td class="p-3">MVR ${o.total}</td><td class="p-3">${o.status}</td></tr>`).join('') || `<tr><td colspan="3" class="p-4 text-center text-slate-500">No orders yet</td></tr>`;
         }
 
         function renderInventory() {
@@ -426,7 +357,7 @@
             tbody.innerHTML = orders.map(o => `
                 <tr class="hover:bg-slate-800/40">
                     <td class="p-4 font-mono font-bold">${o.id}</td>
-                    <td class="p-4">${o.ig_handle || o.igHandle}<div class="text-xs text-slate-400">${o.address}</div></td>
+                    <td class="p-4">${o.igHandle}<div class="text-xs text-slate-400">${o.address}</div></td>
                     <td class="p-4">${(o.items || []).map(i => i.name).join(', ')}</td>
                     <td class="p-4 font-bold">MVR ${o.total}</td>
                     <td class="p-4">${o.status}</td>
@@ -470,34 +401,14 @@
             const chat = chats.find(c => c.id === activeChatId);
             chat.messages.push({ sender: 'me', text: txt });
             input.value = '';
-            saveAllCloud();
+            saveState();
             renderActiveChat();
-        }
-
-        function convertChatToOrder() {
-            const chat = chats.find(c => c.id === activeChatId);
-            if (!chat) return;
-            const newOrder = {
-                id: `ORD-${Math.floor(1000 + Math.random() * 9000)}`,
-                date: new Date().toISOString().split('T')[0],
-                ig_handle: chat.handle,
-                phone: '7770000',
-                address: 'Malé, Maldives',
-                items: [{ name: 'Sample Item', qty: 1, price: 250 }],
-                total: 250,
-                status: 'Pending',
-                payment: 'BML Transfer'
-            };
-            orders.unshift(newOrder);
-            saveAllCloud();
-            toast("Converted chat to order!");
-            switchTab('orders');
         }
 
         function openAddProductModal() { document.getElementById('product-modal').classList.remove('hidden'); }
         function closeProductModal() { document.getElementById('product-modal').classList.add('hidden'); }
         
-        async function saveProduct(e) {
+        function saveProduct(e) {
             e.preventDefault();
             const p = {
                 id: Date.now(),
@@ -509,21 +420,18 @@
                 price: parseFloat(document.getElementById('prod-price').value)
             };
             products.push(p);
-            await saveAllCloud();
             closeProductModal();
             refreshAll();
-            toast("Product saved to cloud!");
+            toast("Product saved!");
         }
 
-        async function deleteProduct(id) {
+        function deleteProduct(id) {
             products = products.filter(p => p.id !== id);
-            await supabaseClient.from('products').delete().eq('id', id);
             refreshAll();
         }
 
-        async function deleteOrder(id) {
+        function deleteOrder(id) {
             orders = orders.filter(o => o.id !== id);
-            await supabaseClient.from('orders').delete().eq('id', id);
             refreshAll();
         }
 
@@ -539,7 +447,19 @@
             });
         }
 
-        document.addEventListener('DOMContentLoaded', checkUserSession);
+        // Mobile Menu Toggles
+        document.getElementById('open-mobile-menu')?.addEventListener('click', () => {
+            document.getElementById('sidebar').classList.remove('-translate-x-full');
+            document.getElementById('sidebar-backdrop').classList.remove('hidden');
+        });
+        document.getElementById('close-mobile-menu')?.addEventListener('click', () => {
+            document.getElementById('sidebar').classList.add('-translate-x-full');
+            document.getElementById('sidebar-backdrop').classList.add('hidden');
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            refreshAll();
+        });
     </script>
 </body>
 </html>
