@@ -476,7 +476,7 @@
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
-                    <div><label class="block text-slate-400 mb-1 text-xs font-semibold">Status</label><select id="order-status" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none"><option>Pending</option><option>Paid</option><option>Packed</option><option>Shipped</option></select></div>
+                    <div><label class="block text-slate-400 mb-1 text-xs font-semibold">Status</label><select id="order-status" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none"><option>Pending</option><option>Paid</option><option>Packed</option><option>Shipped</option><option>Sold</option></select></div>
                     <div><label class="block text-slate-400 mb-1 text-xs font-semibold">Payment</label><select id="order-payment" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none"><option>BML Transfer</option><option>MIB Transfer</option><option>Cash on Delivery</option></select></div>
                 </div>
 
@@ -828,16 +828,45 @@
                     <td class="p-4"><div class="font-bold text-pink-400">${o.igHandle}</div><div class="text-xs text-slate-400">${o.address}</div></td>
                     <td class="p-4 text-xs text-slate-300">${(o.items || []).map(i => `• ${i.name} (x${i.qty})`).join('<br>')}</td>
                     <td class="p-4 font-bold text-white">MVR ${o.total.toFixed(2)}</td>
-                    <td class="p-4"><select onchange="updateOrderStatus('${o.id}', this.value)" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs font-semibold focus:outline-none"><option ${o.status==='Pending'?'selected':''}>Pending</option><option ${o.status==='Paid'?'selected':''}>Paid</option><option ${o.status==='Packed'?'selected':''}>Packed</option><option ${o.status==='Shipped'?'selected':''}>Shipped</option><option ${o.status==='Cancelled'?'selected':''}>Cancelled</option></select></td>
+                    <td class="p-4"><select onchange="updateOrderStatus('${o.id}', this.value)" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs font-semibold focus:outline-none"><option ${o.status==='Pending'?'selected':''}>Pending</option><option ${o.status==='Paid'?'selected':''}>Paid</option><option ${o.status==='Packed'?'selected':''}>Packed</option><option ${o.status==='Shipped'?'selected':''}>Shipped</option><option ${o.status==='Sold'?'selected':''}>Sold</option><option ${o.status==='Cancelled'?'selected':''}>Cancelled</option></select></td>
                     <td class="p-4 text-right"><button onclick="deleteOrder('${o.id}')" class="text-rose-400 hover:text-rose-300 transition"><i class="fa-solid fa-trash"></i></button></td>
                 </tr>
             `).join('') || `<tr><td colspan="6" class="p-8 text-center text-slate-500">No orders found.</td></tr>`;
         }
 
+        function applyOrderStock(order, direction) {
+            // direction -1 deducts stock; +1 restores it. Validate every item before changing anything.
+            const requirements = (order.items || []).map(item => ({
+                product: products.find(p => String(p.id) === String(item.productId)),
+                qty: Math.max(0, Number(item.qty) || 0),
+                name: item.name || 'Product'
+            }));
+            if (direction < 0) {
+                const shortage = requirements.find(x => x.product && x.product.stock < x.qty);
+                if (shortage) {
+                    toast(`Not enough stock for ${shortage.name}. Available: ${shortage.product.stock}`);
+                    return false;
+                }
+            }
+            requirements.forEach(x => {
+                if (x.product) x.product.stock = Math.max(0, Number(x.product.stock || 0) + direction * x.qty);
+            });
+            return true;
+        }
+
         function updateOrderStatus(id, status) {
+            const order = orders.find(o => o.id === id);
+            if (!order) return;
+            const wasSold = order.status === 'Sold';
+            const willBeSold = status === 'Sold';
+            if (!wasSold && willBeSold) {
+                if (!applyOrderStock(order, -1)) { renderOrders(); return; }
+            } else if (wasSold && !willBeSold) {
+                applyOrderStock(order, 1);
+            }
             orders = orders.map(o => o.id === id ? { ...o, status } : o);
             refreshAll();
-            toast("Order status updated");
+            toast(willBeSold && !wasSold ? "Sale recorded and stock deducted" : wasSold && !willBeSold ? "Stock restored" : "Order status updated");
         }
 
         function renderInbox() {
@@ -922,7 +951,7 @@
             e.preventDefault();
             if (!orderCart.length) { toast("Add at least one product to the order!"); return; }
             const newOrder = {
-                id: `ORD-${Math.floor(1000 + Math.random() * 9000)}`,
+                id: `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
                 date: new Date().toISOString().split('T')[0],
                 igHandle: document.getElementById('order-ig').value,
                 phone: document.getElementById('order-phone').value,
@@ -932,6 +961,7 @@
                 status: document.getElementById('order-status').value,
                 payment: document.getElementById('order-payment').value
             };
+            if (newOrder.status === 'Sold' && !applyOrderStock(newOrder, -1)) return;
             orders.unshift(newOrder);
             closeOrderModal();
             refreshAll();
@@ -1170,8 +1200,16 @@
             const idx = orders.findIndex(o => o.id === id);
             if (idx < 0) return;
             const [removed] = orders.splice(idx, 1);
+            if (removed.status === 'Sold') applyOrderStock(removed, 1);
             refreshAll();
-            toast(`Deleted order ${removed.id}`, () => { orders.splice(idx, 0, removed); refreshAll(); });
+            toast(`Deleted order ${removed.id}`, () => {
+                if (removed.status === 'Sold' && !applyOrderStock(removed, -1)) {
+                    toast('Cannot undo: insufficient stock to restore this sold order');
+                    return;
+                }
+                orders.splice(idx, 0, removed);
+                refreshAll();
+            });
         }
 
         const liveChartInstances = {};
