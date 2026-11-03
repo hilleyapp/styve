@@ -111,6 +111,39 @@
         }
     </style>
 
+    <style>
+        /* Improve readability while logging Instagram orders */
+        #order-modal input,
+        #order-modal select,
+        #order-modal textarea {
+            color: #ffffff !important;
+            caret-color: #a5b4fc;
+            background-color: #111827;
+            border-color: #64748b;
+        }
+        #order-modal input::placeholder,
+        #order-modal textarea::placeholder {
+            color: #aebdd0 !important;
+            opacity: 1;
+        }
+        #order-modal select option {
+            color: #ffffff;
+            background: #111827;
+        }
+        #order-modal label,
+        #order-modal .text-slate-400,
+        #order-modal .text-slate-300 {
+            color: #e2e8f0 !important;
+        }
+        #order-modal input:focus,
+        #order-modal select:focus,
+        #order-modal textarea:focus {
+            border-color: #818cf8;
+            outline: 2px solid rgba(129, 140, 248, .22);
+            outline-offset: 1px;
+        }
+    </style>
+
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-full">
 
