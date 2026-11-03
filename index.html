@@ -371,7 +371,7 @@
                     </div>
                 </div>
                 <div><label class="block text-slate-400 mb-1 text-xs font-semibold">Product Name</label><input type="text" id="prod-name" required placeholder="Baby Gentle Wash" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-pink-500"></div>
-                <div><label class="block text-slate-400 mb-1 text-xs font-semibold">Category</label><select id="prod-category" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-pink-500"><option>Skincare</option><option>Baby Care</option><option>Gift Sets</option></select></div>
+                <div><label class="block text-slate-400 mb-1 text-xs font-semibold">Category</label><select id="prod-category" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-pink-500"><option>Baby</option><option>Kids</option><option>Adults</option></select></div>
                 <div><label class="block text-slate-400 mb-1 text-xs font-semibold">Product photo URL</label><input type="url" id="prod-image" placeholder="Automatically filled when a product photo is found" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-pink-500"><div id="prod-image-preview-wrap" class="hidden mt-2 flex items-center gap-3"><img id="prod-image-preview" alt="Product photo preview" class="w-16 h-16 rounded-lg object-contain bg-white p-1"><span class="text-xs text-emerald-400">Product photo found</span></div></div>
                 <div class="grid grid-cols-3 gap-2">
                     <div><label class="block text-slate-400 mb-1 text-xs font-semibold">Stock</label><input type="number" id="prod-stock" min="0" required class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-pink-500"></div>
@@ -424,9 +424,9 @@
     <script>
         // --- INITIAL STATE & LOCAL STORAGE PERSISTENCE ---
         const initialProducts = [
-            { id: 101, sku: 'SKIN-GLOW-01', name: 'Hydrating Glow Serum 30ml', category: 'Skincare', stock: 18, cost: 140.00, price: 320.00 },
+            { id: 101, sku: 'SKIN-GLOW-01', name: 'Hydrating Glow Serum 30ml', category: 'Adults', stock: 18, cost: 140.00, price: 320.00 },
             { id: 102, sku: 'SKIN-CLEAN-02', name: 'Gentle Foaming Cleanser 150ml', category: 'Skincare', stock: 4, cost: 95.00, price: 240.00 },
-            { id: 103, sku: 'BABY-BALM-01', name: 'Organic Baby Diaper Balm 100g', category: 'Baby Care', stock: 2, cost: 80.00, price: 195.00 }
+            { id: 103, sku: 'BABY-BALM-01', name: 'Organic Baby Diaper Balm 100g', category: 'Baby', stock: 2, cost: 80.00, price: 195.00 }
         ];
 
         const initialOrders = [
@@ -910,7 +910,7 @@
             document.getElementById('prod-barcode').value = p.barcode || '';
             document.getElementById('prod-image').value = p.image || '';
             updateProductImagePreview();
-            document.getElementById('prod-category').value = p.category || 'Skincare';
+            document.getElementById('prod-category').value = ({ 'Baby Care': 'Baby', 'Skincare': 'Adults', 'Gift Sets': 'Adults' }[p.category] || p.category || 'Adults');
             document.getElementById('prod-stock').value = Number(p.stock || 0);
             document.getElementById('prod-cost').value = Number(p.cost || 0);
             document.getElementById('prod-price').value = Number(p.price || 0);
