@@ -447,6 +447,20 @@
         </div>
     </div>
 
+    <!-- DASHBOARD ORDER DETAILS MODAL -->
+    <div id="dashboard-order-details-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4 hidden" onclick="if(event.target===this) closeDashboardOrderDetails()">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="font-bold text-lg text-white">Order Details</h3>
+                <button onclick="closeDashboardOrderDetails()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div id="dashboard-order-details-content" class="space-y-4"></div>
+            <div class="flex justify-end pt-3 border-t border-slate-800">
+                <button onclick="closeDashboardOrderDetails()" class="px-4 py-2 bg-slate-800 text-slate-200 rounded-xl font-semibold">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL 2: ORDER MODAL -->
     <div id="order-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
@@ -715,6 +729,36 @@
             document.getElementById('pending-orders-badge').textContent = orders.filter(o => o.status === 'Pending' || o.status === 'Paid').length;
         }
 
+        function viewOrderDetails(id) {
+            const order = orders.find(o => String(o.id) === String(id));
+            if (!order) { toast('Order not found'); return; }
+            const content = document.getElementById('dashboard-order-details-content');
+            const rows = (order.items || []).map(item => `
+                <div class="flex justify-between gap-3 py-2 border-b border-slate-800 text-sm">
+                    <div class="min-w-0"><p class="text-white font-semibold">${item.name || 'Product'}</p><p class="text-xs text-slate-400">Qty: ${Number(item.qty || 0)} × MVR ${Number(item.price || 0).toFixed(2)}</p></div>
+                    <p class="text-white font-bold whitespace-nowrap">MVR ${(Number(item.qty || 0) * Number(item.price || 0)).toFixed(2)}</p>
+                </div>`).join('') || '<p class="text-slate-400 text-sm">No items recorded.</p>';
+            content.innerHTML = `
+                <div class="grid grid-cols-2 gap-3 text-sm">
+                    <div class="bg-slate-950 rounded-xl p-3"><p class="text-xs text-slate-400">Order ID</p><p class="text-white font-semibold break-all">${order.id}</p></div>
+                    <div class="bg-slate-950 rounded-xl p-3"><p class="text-xs text-slate-400">Date</p><p class="text-white font-semibold">${order.date || '—'}</p></div>
+                    <div class="bg-slate-950 rounded-xl p-3"><p class="text-xs text-slate-400">Customer</p><p class="text-pink-400 font-semibold">${order.igHandle || '—'}</p></div>
+                    <div class="bg-slate-950 rounded-xl p-3"><p class="text-xs text-slate-400">Phone</p><p class="text-white font-semibold">${order.phone || '—'}</p></div>
+                    <div class="bg-slate-950 rounded-xl p-3 col-span-2"><p class="text-xs text-slate-400">Delivery address / Notes</p><p class="text-white font-semibold">${order.address || '—'}</p></div>
+                </div>
+                <div><div class="flex justify-between items-center mb-2"><h4 class="text-white font-bold text-sm">Items</h4><span class="text-xs text-slate-400">${(order.items || []).length} item(s)</span></div>${rows}</div>
+                <div class="flex justify-between items-center"><span class="text-slate-400 text-sm">Order total</span><span class="text-white font-bold text-lg">MVR ${Number(order.total || 0).toFixed(2)}</span></div>
+                <div class="grid grid-cols-2 gap-3 text-sm">
+                    <div class="bg-slate-950 rounded-xl p-3"><p class="text-xs text-slate-400">Status</p><p class="text-indigo-400 font-bold">${order.status || '—'}</p></div>
+                    <div class="bg-slate-950 rounded-xl p-3"><p class="text-xs text-slate-400">Payment</p><p class="text-white font-semibold">${order.payment || '—'}</p></div>
+                </div>`;
+            document.getElementById('dashboard-order-details-modal').classList.remove('hidden');
+        }
+
+        function closeDashboardOrderDetails() {
+            document.getElementById('dashboard-order-details-modal').classList.add('hidden');
+        }
+
         function renderDashboard() {
             const totalRev = orders.reduce((s, o) => o.status !== 'Cancelled' ? s + o.total : s, 0);
             let totalProfit = 0;
@@ -742,7 +786,7 @@
                     <td class="px-3 py-3 text-slate-300">${o.items.length} item(s)</td>
                     <td class="px-3 py-3 font-bold text-white">MVR ${o.total.toFixed(2)}</td>
                     <td class="px-3 py-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-400">${o.status}</span></td>
-                    <td class="px-3 py-3"><button onclick="switchTab('orders')" class="text-pink-400 hover:underline">View</button></td>
+                    <td class="px-3 py-3"><button onclick="viewOrderDetails('${o.id}')" class="text-pink-400 hover:underline">View Details</button></td>
                 </tr>
             `).join('') || `<tr><td colspan="5" class="p-4 text-center text-slate-500">No orders yet</td></tr>`;
 
