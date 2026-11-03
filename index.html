@@ -142,7 +142,10 @@
                 <button id="open-mobile-menu" class="lg:hidden text-slate-400 hover:text-white p-2 rounded-lg bg-slate-800"><i class="fa-solid fa-bars text-lg"></i></button>
                 <h2 id="page-title" class="text-lg font-bold text-white">Dashboard Overview</h2>
             </div>
-            <div class="flex items-center space-x-3">
+            <div class="flex items-center space-x-2 sm:space-x-3">
+                <div id="cloud-sync-indicator" role="status" aria-live="polite" title="Styve cloud sync status" class="flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-800/80 px-2.5 py-2 text-[11px] font-semibold text-slate-300 whitespace-nowrap">
+                    <span id="cloud-sync-dot" class="h-2 w-2 rounded-full bg-slate-500"></span><span id="cloud-sync-label">Connecting</span>
+                </div>
                 <button onclick="openNewOrderModal()" class="px-3.5 py-2 bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white text-xs sm:text-sm font-semibold rounded-xl shadow-lg shadow-pink-500/20 transition flex items-center space-x-2">
                     <i class="fa-solid fa-plus text-xs"></i><span>Log Order</span>
                 </button>
@@ -453,16 +456,39 @@
         const SUPABASE_URL = 'https://ncauwqggeoicyetunpop.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_TSOr4yScy1e2yONR3KyuCQ_0HZ1b6ox';
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        let cloudUser = null, cloudReady = false, cloudSaveTimer = null, cloudChannel = null;
+        let cloudUser = null, cloudReady = false, cloudSaveTimer = null, cloudChannel = null, cloudSavePending = false;
         function cloudSnapshot() { return { products, orders, chats, expenses, schemaVersion: 1, updatedAt: new Date().toISOString() }; }
+        function setCloudSyncIndicator(state) {
+            const dot = document.getElementById('cloud-sync-dot');
+            const label = document.getElementById('cloud-sync-label');
+            const wrap = document.getElementById('cloud-sync-indicator');
+            if (!dot || !label || !wrap) return;
+            const styles = {
+                connected: ['bg-emerald-400', 'text-emerald-300', 'border-emerald-500/30', 'Connected'],
+                syncing: ['bg-sky-400 animate-pulse', 'text-sky-300', 'border-sky-500/30', 'Syncing'],
+                offline: ['bg-rose-400', 'text-rose-300', 'border-rose-500/30', 'Offline'],
+                connecting: ['bg-amber-400 animate-pulse', 'text-amber-300', 'border-amber-500/30', 'Connecting']
+            };
+            const s = styles[state] || styles.connecting;
+            dot.className = 'h-2 w-2 rounded-full ' + s[0];
+            label.textContent = s[3];
+            wrap.className = 'flex items-center gap-1.5 rounded-full border bg-slate-800/80 px-2.5 py-2 text-[11px] font-semibold whitespace-nowrap ' + s[1] + ' ' + s[2];
+            wrap.title = state === 'offline' ? 'No internet connection. Changes are saved on this device and will retry when online.' : state === 'syncing' ? 'Saving changes to Styve cloud.' : state === 'connected' ? 'Styve cloud is connected.' : 'Connecting to Styve cloud.';
+        }
         function setCloudStatus(message, isError = false) {
             const el = document.getElementById('cloud-auth-status');
             if (el) { el.textContent = message; el.className = 'text-xs ' + (isError ? 'text-rose-400' : 'text-slate-400'); }
         }
         async function writeCloudState() {
             if (!cloudReady || !cloudUser) return;
+            if (!navigator.onLine) { cloudSavePending = true; setCloudSyncIndicator('offline'); return; }
+            setCloudSyncIndicator('syncing');
             const { error } = await supabaseClient.from('styve_app_state').upsert({ owner_id: cloudUser.id, data: cloudSnapshot(), updated_at: new Date().toISOString() }, { onConflict: 'owner_id' });
-            if (error) { console.error('Styve cloud save failed:', error); toast('Cloud sync failed. Changes remain saved on this device.'); }
+            if (error) {
+                cloudSavePending = true; console.error('Styve cloud save failed:', error);
+                setCloudSyncIndicator('offline');
+                toast('Cloud sync failed. Changes remain saved on this device.');
+            } else { cloudSavePending = false; setCloudSyncIndicator('connected'); }
         }
         function scheduleCloudSave() {
             if (!cloudReady || !cloudUser) return;
@@ -486,20 +512,29 @@
             if (cloudChannel) supabaseClient.removeChannel(cloudChannel);
             cloudChannel = supabaseClient.channel('styve-owner-' + cloudUser.id)
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'styve_app_state', filter: 'owner_id=eq.' + cloudUser.id }, async payload => {
-                    if (payload.new?.data) { cloudReady = false; await applyCloudState(payload.new.data); cloudReady = true; }
-                }).subscribe();
+                    if (payload.new?.data) { cloudReady = false; await applyCloudState(payload.new.data); cloudReady = true; setCloudSyncIndicator('connected'); }
+                }).subscribe(status => {
+                    if (status === 'SUBSCRIBED') setCloudSyncIndicator('connected');
+                    else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') setCloudSyncIndicator(navigator.onLine ? 'connecting' : 'offline');
+                });
         }
         async function startCloudSession(session) {
             cloudUser = session.user;
             const gate = document.getElementById('cloud-auth-gate');
             const { data, error } = await supabaseClient.from('styve_app_state').select('data').eq('owner_id', cloudUser.id).maybeSingle();
-            if (error) { cloudUser = null; setCloudStatus('Database setup needed: ' + error.message, true); return; }
+            if (error) { cloudUser = null; setCloudSyncIndicator('offline'); setCloudStatus('Database setup needed: ' + error.message, true); return; }
             gate.classList.add('hidden');
             if (data?.data) { cloudReady = false; await applyCloudState(data.data); cloudReady = true; }
             else { cloudReady = true; await writeCloudState(); }
-            listenForCloudChanges(); refreshAll(); renderInbox(); toast('Styve connected. Cloud sync is active.');
+            listenForCloudChanges(); refreshAll(); renderInbox(); setCloudSyncIndicator(navigator.onLine ? 'connected' : 'offline'); toast('Styve connected. Cloud sync is active.');
         }
+        window.addEventListener('offline', () => setCloudSyncIndicator('offline'));
+        window.addEventListener('online', () => {
+            if (cloudUser) { setCloudSyncIndicator('syncing'); writeCloudState(); }
+            else setCloudSyncIndicator('connecting');
+        });
         async function initCloudApp() {
+            setCloudSyncIndicator(navigator.onLine ? 'connecting' : 'offline');
             if (!window.supabase?.createClient) { setCloudStatus('Could not load Supabase. Check your internet connection and refresh.', true); return; }
             const { data, error } = await supabaseClient.auth.getSession();
             if (error) { setCloudStatus(error.message, true); return; }
