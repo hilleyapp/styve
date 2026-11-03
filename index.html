@@ -803,7 +803,7 @@
             const url = document.getElementById('prod-image').value.trim();
             const wrap = document.getElementById('prod-image-preview-wrap');
             const img = document.getElementById('prod-image-preview');
-            if (url && /^https?:\\/\\//i.test(url)) {
+            if (url && /^https?:\/\//i.test(url)) {
                 img.src = url;
                 img.onerror = () => wrap.classList.add('hidden');
                 img.onload = () => wrap.classList.remove('hidden');
@@ -816,7 +816,7 @@
         async function lookupProductBarcode() {
             const code = document.getElementById('prod-barcode').value.trim();
             const status = document.getElementById('barcode-lookup-status');
-            if (!/^\\d{8,14}$/.test(code)) { status.textContent = 'Enter a valid 8–14 digit barcode.'; return; }
+            if (!/^\d{8,14}$/.test(code)) { status.textContent = 'Enter a valid 8–14 digit barcode.'; return; }
             status.textContent = 'Looking up product details and photo…';
             const sources = [
                 { name: 'Open Beauty Facts', url: `https://world.openbeautyfacts.org/api/v2/product/${encodeURIComponent(code)}.json` },
