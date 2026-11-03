@@ -1,15 +1,10 @@
-styve
+<!DOCTYPE html>
 <html lang="en" class="h-full bg-slate-900 text-slate-100">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#0f172a">
-    <meta name="color-scheme" content="dark">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Styve">
-    <title>Styve - Business Suite</title>
+    <title>Styve - Business Suite (Supabase Cloud Sync)</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
@@ -18,6 +13,8 @@ styve
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Canvas Confetti -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Inter Font -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
@@ -26,19 +23,8 @@ styve
             darkMode: 'class',
             theme: {
                 extend: {
-                    fontFamily: {
-                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
-                    },
-                    colors: {
-                        brand: {
-                            50: '#fdf2f8',
-                            100: '#fce7f3',
-                            500: '#ec4899',
-                            600: '#db2777',
-                            700: '#be185d',
-                            900: '#831843'
-                        }
-                    }
+                    fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
+                    colors: { brand: { 500: '#ec4899', 600: '#db2777', 700: '#be185d' } }
                 }
             }
         }
@@ -47,783 +33,363 @@ styve
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.2); border-radius: 9999px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.4); }
         .ig-bg-gradient { background: linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045); }
-            /* --- Cross-browser / device compatibility --- */
-        html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
-        html, body { height: 100%; }
-        body.h-full { height: 100vh; height: 100dvh; -webkit-tap-highlight-color: transparent; }
-        * { scrollbar-width: thin; scrollbar-color: rgba(148,163,184,.3) transparent; }
-        body > div.flex-1 { min-height: 0; min-width: 0; height: 100%; }
-        main { min-height: 0; overflow-y: auto !important; overflow-x: hidden; -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; }
-        table { min-width: 640px; }
-        header.h-16 { padding-top: env(safe-area-inset-top); height: calc(4rem + env(safe-area-inset-top)); }
-        #sidebar { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
-        main { padding-bottom: calc(1.5rem + env(safe-area-inset-bottom)); padding-left: max(1rem, env(safe-area-inset-left)); padding-right: max(1rem, env(safe-area-inset-right)); }
-        #toast-container { bottom: calc(1rem + env(safe-area-inset-bottom)); }
-        #product-modal > div, #order-modal > div, #confirm-modal > div { max-height: 92vh; max-height: 92dvh; overflow-y: auto; }
-        #tab-inbox { height: calc(100vh - 140px); height: calc(100dvh - 140px); }
-        @media (max-width: 1023px) {
-            #tab-inbox { height: auto; }
-            #inbox-chats-list { max-height: 11rem; }
-            #chat-messages-container { min-height: 45vh; min-height: 45dvh; }
-        }
-        @media (max-width: 640px) {
-            input, select, textarea { font-size: 16px !important; } /* stops iOS auto-zoom on focus */
-        }
-        @media (pointer: coarse) {
-            button, select, label[for] { min-height: 40px; }
-            #sidebar nav button { min-height: 44px; }
-        }
-        @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
-        }
+        
+        /* Fix scrolling behavior */
+        html, body { height: 100%; overflow: auto !important; }
+        body { display: flex; flex-direction: row; }
+        main { overflow-y: auto !important; -webkit-overflow-scrolling: touch; }
+
         @keyframes toastIn { from {opacity:0; transform:translateY(12px)} to {opacity:1; transform:none} }
         .toast { animation: toastIn .2s ease-out; }
-        button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid #ec4899; outline-offset: 2px; }
     </style>
 </head>
-<body class="h-full flex overflow-hidden font-sans antialiased bg-slate-950 text-slate-100">
+<body class="bg-slate-950 text-slate-100 min-h-full">
 
-    <!-- Mobile Sidebar Backdrop -->
-    <div id="sidebar-backdrop" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 hidden lg:hidden"></div>
+    <!-- LOGIN SCREEN OVERLAY -->
+    <div id="login-overlay" class="fixed inset-0 bg-slate-950 z-[100] flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-3xl p-8 space-y-6 shadow-2xl">
+            <div class="text-center space-y-2">
+                <div class="w-14 h-14 rounded-2xl ig-bg-gradient mx-auto flex items-center justify-center text-white shadow-xl shadow-pink-500/20 text-2xl">
+                    <i class="fa-solid fa-store"></i>
+                </div>
+                <h1 class="text-xl font-bold text-white">Styve Business Suite</h1>
+                <p class="text-xs text-slate-400">Sign in securely with your Supabase cloud account</p>
+            </div>
+
+            <form id="login-form" onsubmit="handleAuthSubmit(event)" class="space-y-4 text-xs sm:text-sm">
+                <div>
+                    <label class="block text-slate-400 mb-1 font-semibold">Email Address</label>
+                    <input type="email" id="auth-email" required placeholder="you@example.com" class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-pink-500">
+                </div>
+                <div>
+                    <label class="block text-slate-400 mb-1 font-semibold">Password</label>
+                    <input type="password" id="auth-password" required placeholder="••••••••" class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-pink-500">
+                </div>
+
+                <div id="auth-error" class="text-red-400 text-xs text-center hidden"></div>
+
+                <button type="submit" id="auth-submit-btn" class="w-full py-3 bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white font-bold rounded-xl shadow-lg shadow-pink-500/20 transition">
+                    Sign In
+                </button>
+
+                <div class="text-center pt-2">
+                    <button type="button" onclick="toggleAuthMode()" class="text-xs text-pink-400 hover:underline">
+                        Need an account? <span id="auth-toggle-text" class="font-bold">Sign Up</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <!-- Main Sidebar Navigation -->
-    <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 w-64 bg-slate-900 border-r border-slate-800 z-50 flex flex-col transition-transform duration-300 -translate-x-full lg:translate-x-0">
-        <!-- Brand Header -->
+    <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 w-64 bg-slate-900 border-r border-slate-800 z-50 flex flex-col transition-transform duration-300 -translate-x-full lg:translate-x-0 shrink-0">
         <div class="p-5 border-b border-slate-800/80 flex items-center justify-between">
             <div class="flex items-center space-x-3">
                 <div class="w-10 h-10 rounded-xl ig-bg-gradient flex items-center justify-center text-white shadow-lg shadow-pink-500/20">
                     <i class="fa-solid fa-store text-lg"></i>
                 </div>
                 <div>
-                    <h1 class="font-bold text-base text-white tracking-tight flex items-center gap-1.5">
-                        Styve
-                    </h1>
+                    <h1 class="font-bold text-base text-white tracking-tight">Styve</h1>
                     <p class="text-[11px] text-slate-400">Skincare & Baby Care</p>
                 </div>
             </div>
-            <button id="close-mobile-menu" class="lg:hidden text-slate-400 hover:text-white p-1">
-                <i class="fa-solid fa-xmark text-lg"></i>
-            </button>
+            <button id="close-mobile-menu" class="lg:hidden text-slate-400 hover:text-white p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
         </div>
 
-        <!-- Navigation Links -->
         <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-item active w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-300 hover:bg-slate-800/60">
-                <i class="fa-solid fa-chart-pie w-5 text-center text-pink-500"></i>
-                <span>Dashboard</span>
+            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-item active w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800/60">
+                <i class="fa-solid fa-chart-pie w-5 text-center text-pink-500"></i><span>Dashboard</span>
             </button>
-
-            <button onclick="switchTab('inventory')" id="nav-inventory" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-300 hover:bg-slate-800/60">
-                <div class="flex items-center space-x-3">
-                    <i class="fa-solid fa-boxes-stacked w-5 text-center text-amber-500"></i>
-                    <span>Stock & Inventory</span>
-                </div>
+            <button onclick="switchTab('inventory')" id="nav-inventory" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800/60">
+                <div class="flex items-center space-x-3"><i class="fa-solid fa-boxes-stacked w-5 text-center text-amber-500"></i><span>Stock & Inventory</span></div>
                 <span id="low-stock-badge" class="hidden bg-amber-500/20 text-amber-400 text-xs font-bold px-2 py-0.5 rounded-full border border-amber-500/30">0</span>
             </button>
-
-            <button onclick="switchTab('orders')" id="nav-orders" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-300 hover:bg-slate-800/60">
-                <div class="flex items-center space-x-3">
-                    <i class="fa-solid fa-bag-shopping w-5 text-center text-indigo-500"></i>
-                    <span>Sales & Orders</span>
-                </div>
+            <button onclick="switchTab('orders')" id="nav-orders" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800/60">
+                <div class="flex items-center space-x-3"><i class="fa-solid fa-bag-shopping w-5 text-center text-indigo-500"></i><span>Sales & Orders</span></div>
                 <span id="pending-orders-badge" class="bg-indigo-500/20 text-indigo-400 text-xs font-bold px-2 py-0.5 rounded-full border border-indigo-500/30">0</span>
             </button>
-
-            <button onclick="switchTab('inbox')" id="nav-inbox" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-300 hover:bg-slate-800/60">
-                <div class="flex items-center space-x-3">
-                    <i class="fa-brands fa-instagram w-5 text-center text-rose-500 text-lg"></i>
-                    <span>IG Order Inbox</span>
-                </div>
+            <button onclick="switchTab('inbox')" id="nav-inbox" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800/60">
+                <div class="flex items-center space-x-3"><i class="fa-brands fa-instagram w-5 text-center text-rose-500 text-lg"></i><span>IG Order Inbox</span></div>
                 <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
             </button>
-
-            <button onclick="switchTab('analytics')" id="nav-analytics" class="nav-item w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-300 hover:bg-slate-800/60">
-                <i class="fa-solid fa-chart-line w-5 text-center text-emerald-500"></i>
-                <span>Analytics & Profit</span>
+            <button onclick="switchTab('analytics')" id="nav-analytics" class="nav-item w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800/60">
+                <i class="fa-solid fa-chart-line w-5 text-center text-emerald-500"></i><span>Analytics & Profit</span>
             </button>
         </nav>
 
-        <!-- Business Context Footer -->
         <div class="p-4 border-t border-slate-800/80 bg-slate-900/50 space-y-3">
-            <div class="bg-slate-800/50 rounded-xl p-3 border border-slate-700/50">
-                <div class="flex items-center justify-between text-xs text-slate-400 mb-1">
-                    <span>Active Currency</span>
-                    <span class="font-bold text-white bg-slate-700 px-1.5 py-0.5 rounded">MVR (Rf)</span>
+            <div class="bg-slate-800/50 rounded-xl p-3 border border-slate-700/50 flex items-center justify-between">
+                <div>
+                    <span class="text-[10px] text-slate-400 block">Cloud Status</span>
+                    <span id="sync-status" class="text-xs font-bold text-emerald-400"><i class="fa-solid fa-circle text-[8px] mr-1"></i>Connected</span>
                 </div>
-                <div class="text-[11px] text-slate-500">Maldivian Rufiyaa Shop</div>
+                <button onclick="handleLogout()" class="px-2.5 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-semibold">Sign Out</button>
             </div>
-
-            <!-- Full App Reset Button -->
-            <button onclick="resetFullApp()" class="w-full py-2 px-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-bold rounded-xl border border-red-500/30 transition flex items-center justify-center gap-2">
-                <i class="fa-solid fa-triangle-exclamation"></i>
-                <span>Reset Entire App</span>
-            </button>
         </div>
     </aside>
 
     <!-- Main Content Area -->
-    <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
-        
-        <!-- Top App Bar -->
-        <header class="h-16 bg-slate-900/80 backdrop-blur border-b border-slate-800 px-4 sm:px-6 flex items-center justify-between shrink-0">
+    <div class="flex-1 flex flex-col min-w-0 min-h-screen">
+        <header class="h-16 bg-slate-900/80 backdrop-blur border-b border-slate-800 px-4 sm:px-6 flex items-center justify-between shrink-0 sticky top-0 z-30">
             <div class="flex items-center space-x-3">
-                <button id="open-mobile-menu" class="lg:hidden text-slate-400 hover:text-white p-2 rounded-lg bg-slate-800">
-                    <i class="fa-solid fa-bars text-lg"></i>
-                </button>
+                <button id="open-mobile-menu" class="lg:hidden text-slate-400 hover:text-white p-2 rounded-lg bg-slate-800"><i class="fa-solid fa-bars text-lg"></i></button>
                 <h2 id="page-title" class="text-lg font-bold text-white">Dashboard Overview</h2>
             </div>
-
-            <!-- Header Quick Actions -->
             <div class="flex items-center space-x-3">
-                <button onclick="openNewOrderModal()" class="px-3.5 py-2 bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white text-xs sm:text-sm font-semibold rounded-xl shadow-lg shadow-pink-500/20 transition-all flex items-center space-x-2">
-                    <i class="fa-solid fa-plus text-xs"></i>
-                    <span>Log Order</span>
+                <button onclick="openNewOrderModal()" class="px-3.5 py-2 bg-gradient-to-r from-pink-500 to-rose-600 text-white text-xs sm:text-sm font-semibold rounded-xl shadow-lg shadow-pink-500/20 transition flex items-center space-x-2">
+                    <i class="fa-solid fa-plus text-xs"></i><span>Log Order</span>
                 </button>
-                <button onclick="openAddProductModal()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-semibold rounded-xl border border-slate-700 transition-all flex items-center space-x-2">
-                    <i class="fa-solid fa-box text-xs text-amber-400"></i>
-                    <span class="hidden sm:inline">Add Product</span>
+                <button onclick="openAddProductModal()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-semibold rounded-xl border border-slate-700 transition hidden sm:flex items-center space-x-2">
+                    <i class="fa-solid fa-box text-xs text-amber-400"></i><span>Add Product</span>
                 </button>
             </div>
         </header>
 
-        <!-- Dynamic Tab Views Container -->
-        <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-6">
-
-            <!-- 1. DASHBOARD OVERVIEW TAB -->
+        <main class="flex-1 p-4 sm:p-6 lg:p-8 space-y-6">
+            <!-- Tabs content views -->
             <section id="tab-dashboard" class="tab-content space-y-6">
-                <!-- Stat Cards -->
                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div class="bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-800 shadow-sm relative overflow-hidden">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Revenue</p>
-                                <h3 id="stat-revenue" class="text-xl sm:text-2xl font-bold text-white mt-1">MVR 0.00</h3>
-                            </div>
-                            <div class="p-3 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20">
-                                <i class="fa-solid fa-money-bill-wave text-lg"></i>
-                            </div>
-                        </div>
-                        <div class="mt-3 flex items-center text-xs text-emerald-400">
-                            <i class="fa-solid fa-arrow-trend-up mr-1"></i>
-                            <span id="stat-profit-gross">Net Profit: MVR 0</span>
-                        </div>
+                    <div class="bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-800">
+                        <p class="text-xs font-semibold text-slate-400 uppercase">Total Revenue</p>
+                        <h3 id="stat-revenue" class="text-xl sm:text-2xl font-bold text-white mt-1">MVR 0.00</h3>
+                        <span id="stat-profit-gross" class="text-xs text-emerald-400 mt-2 block">Net Profit: MVR 0</span>
                     </div>
-
-                    <div class="bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-800 shadow-sm relative overflow-hidden">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Sales</p>
-                                <h3 id="stat-orders" class="text-xl sm:text-2xl font-bold text-white mt-1">0 Orders</h3>
-                            </div>
-                            <div class="p-3 bg-indigo-500/10 text-indigo-400 rounded-xl border border-indigo-500/20">
-                                <i class="fa-solid fa-bag-shopping text-lg"></i>
-                            </div>
-                        </div>
-                        <div class="mt-3 flex items-center text-xs text-slate-400">
-                            <span id="stat-pending-orders">0 Pending dispatch</span>
-                        </div>
+                    <div class="bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-800">
+                        <p class="text-xs font-semibold text-slate-400 uppercase">Total Sales</p>
+                        <h3 id="stat-orders" class="text-xl sm:text-2xl font-bold text-white mt-1">0 Orders</h3>
+                        <span id="stat-pending-orders" class="text-xs text-slate-400 mt-2 block">0 Pending</span>
                     </div>
-
-                    <div class="bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-800 shadow-sm relative overflow-hidden">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Stock Health</p>
-                                <h3 id="stat-low-stock-count" class="text-xl sm:text-2xl font-bold text-white mt-1">0 Items Low</h3>
-                            </div>
-                            <div class="p-3 bg-amber-500/10 text-amber-400 rounded-xl border border-amber-500/20">
-                                <i class="fa-solid fa-triangle-exclamation text-lg"></i>
-                            </div>
-                        </div>
-                        <div class="mt-3 flex items-center text-xs text-amber-400">
-                            <span>Requires re-order attention</span>
-                        </div>
+                    <div class="bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-800">
+                        <p class="text-xs font-semibold text-slate-400 uppercase">Stock Health</p>
+                        <h3 id="stat-low-stock-count" class="text-xl sm:text-2xl font-bold text-white mt-1">0 Items Low</h3>
+                        <span class="text-xs text-amber-400 mt-2 block">Requires attention</span>
                     </div>
-
-                    <div class="bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-800 shadow-sm relative overflow-hidden">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Avg Profit Margin</p>
-                                <h3 id="stat-avg-margin" class="text-xl sm:text-2xl font-bold text-white mt-1">0%</h3>
-                            </div>
-                            <div class="p-3 bg-pink-500/10 text-pink-400 rounded-xl border border-pink-500/20">
-                                <i class="fa-solid fa-percent text-lg"></i>
-                            </div>
-                        </div>
-                        <div class="mt-3 flex items-center text-xs text-pink-400">
-                            <span>Across Skincare & Baby lines</span>
-                        </div>
+                    <div class="bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-800">
+                        <p class="text-xs font-semibold text-slate-400 uppercase">Avg Profit Margin</p>
+                        <h3 id="stat-avg-margin" class="text-xl sm:text-2xl font-bold text-white mt-1">0%</h3>
+                        <span class="text-xs text-pink-400 mt-2 block">Across catalog</span>
                     </div>
                 </div>
-
-                <!-- Quick Dashboard Main Grid -->
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <!-- Recent Orders List -->
-                    <div class="lg:col-span-2 bg-slate-900 rounded-2xl p-5 border border-slate-800 flex flex-col">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="font-bold text-base text-white flex items-center gap-2">
-                                <i class="fa-solid fa-clock-rotate-left text-pink-500"></i>
-                                Recent Instagram Orders
-                            </h3>
-                            <button onclick="switchTab('orders')" class="text-xs text-pink-400 hover:text-pink-300 font-semibold">View All</button>
-                        </div>
-                        <div class="overflow-x-auto flex-1">
-                            <table class="w-full text-left text-xs">
-                                <thead class="bg-slate-800/60 text-slate-400 uppercase font-semibold">
-                                    <tr>
-                                        <th class="px-3 py-2.5 rounded-l-lg">Customer (IG)</th>
-                                        <th class="px-3 py-2.5">Items</th>
-                                        <th class="px-3 py-2.5">Total</th>
-                                        <th class="px-3 py-2.5">Status</th>
-                                        <th class="px-3 py-2.5 rounded-r-lg">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="recent-orders-tbody" class="divide-y divide-slate-800">
-                                    <!-- Dynamic Content -->
-                                </tbody>
-                            </table>
-                        </div>
+                    <div class="lg:col-span-2 bg-slate-900 rounded-2xl p-5 border border-slate-800">
+                        <h3 class="font-bold text-base text-white mb-4"><i class="fa-solid fa-clock-rotate-left text-pink-500 mr-2"></i>Recent Orders</h3>
+                        <table class="w-full text-left text-xs"><tbody id="recent-orders-tbody" class="divide-y divide-slate-800"></tbody></table>
                     </div>
-
-                    <!-- Low Stock Alerts Panel -->
-                    <div class="bg-slate-900 rounded-2xl p-5 border border-slate-800 flex flex-col">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="font-bold text-base text-white flex items-center gap-2">
-                                <i class="fa-solid fa-triangle-exclamation text-amber-500"></i>
-                                Stock Alert Center
-                            </h3>
-                            <button onclick="switchTab('inventory')" class="text-xs text-amber-400 hover:text-amber-300 font-semibold">Manage Stock</button>
-                        </div>
-                        <div id="dashboard-stock-alerts" class="space-y-3 flex-1 overflow-y-auto max-h-[300px] pr-1">
-                            <!-- Dynamic Stock Alert Cards -->
-                        </div>
+                    <div class="bg-slate-900 rounded-2xl p-5 border border-slate-800">
+                        <h3 class="font-bold text-base text-white mb-4"><i class="fa-solid fa-triangle-exclamation text-amber-500 mr-2"></i>Stock Alerts</h3>
+                        <div id="dashboard-stock-alerts" class="space-y-3"></div>
                     </div>
                 </div>
             </section>
 
-            <!-- 2. INVENTORY MANAGEMENT TAB -->
             <section id="tab-inventory" class="tab-content hidden space-y-6">
-                <!-- Inventory Actions Header -->
-                <div class="flex flex-col xl:flex-row gap-4 justify-between items-stretch xl:items-center bg-slate-900 p-4 rounded-2xl border border-slate-800">
-                    <div class="relative flex-1">
-                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500"></i>
-                        <input type="text" id="inventory-search" placeholder="Search by SKU, Product Name or Category..." onkeyup="filterInventory()" class="w-full pl-10 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-pink-500">
-                    </div>
-                    <div class="flex flex-wrap gap-2 items-center">
-                        <select id="inventory-category-filter" onchange="filterInventory()" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none">
-                            <option value="ALL">All Categories</option>
-                            <option value="Skincare">Skincare</option>
-                            <option value="Baby Care">Baby Care</option>
-                            <option value="Gift Sets">Gift Sets</option>
-                        </select>
-                        
-                        <!-- CSV Import Button & Hidden Input -->
-                        <label for="csvFileInput" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap">
-                            <i class="fa-solid fa-file-arrow-up"></i> Import CSV
-                        </label>
-                        <input type="file" id="csvFileInput" accept=".csv" class="hidden" onchange="handleProductImport(event)">
-
-                        <button onclick="openAddProductModal()" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold rounded-xl transition flex items-center gap-1.5 whitespace-nowrap">
-                            <i class="fa-solid fa-plus"></i> Add Product
-                        </button>
-                    </div>
+                <div class="flex gap-4 justify-between bg-slate-900 p-4 rounded-2xl border border-slate-800 flex-wrap">
+                    <input type="text" id="inventory-search" placeholder="Search inventory..." onkeyup="renderInventory()" class="px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm flex-1">
+                    <button onclick="openAddProductModal()" class="px-4 py-2 bg-amber-500 text-slate-950 text-xs font-bold rounded-xl">Add Product</button>
                 </div>
-
-                <!-- Products Table -->
-                <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-xs sm:text-sm">
-                            <thead class="bg-slate-800/80 text-slate-400 font-semibold uppercase text-[11px]">
-                                <tr>
-                                    <th class="p-4">SKU & Item</th>
-                                    <th class="p-4">Category</th>
-                                    <th class="p-4">Cost (MVR)</th>
-                                    <th class="p-4">Price (MVR)</th>
-                                    <th class="p-4">Margin</th>
-                                    <th class="p-4 text-center">In Stock</th>
-                                    <th class="p-4 text-right">Quick Stock Adjustment</th>
-                                </tr>
-                            </thead>
-                            <tbody id="inventory-table-body" class="divide-y divide-slate-800">
-                                <!-- Dynamic Render -->
-                            </tbody>
-                        </table>
-                    </div>
+                <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-800 text-slate-400 text-[11px] uppercase">
+                            <tr><th class="p-4">SKU & Item</th><th class="p-4">Category</th><th class="p-4">Cost</th><th class="p-4">Price</th><th class="p-4 text-center">Stock</th><th class="p-4 text-right">Actions</th></tr>
+                        </thead>
+                        <tbody id="inventory-table-body" class="divide-y divide-slate-800"></tbody>
+                    </table>
                 </div>
             </section>
 
-            <!-- 3. SALES & ORDER TRACKING TAB -->
             <section id="tab-orders" class="tab-content hidden space-y-6">
-                <!-- Filters & Search -->
-                <div class="flex flex-col lg:flex-row gap-4 justify-between bg-slate-900 p-4 rounded-2xl border border-slate-800">
-                    <div class="flex flex-col sm:flex-row gap-3 flex-1">
-                        <div class="relative flex-1">
-                            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500"></i>
-                            <input type="text" id="order-search" placeholder="Search by Order ID, IG Handle, Customer Name..." onkeyup="renderOrders()" class="w-full pl-10 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-indigo-500">
-                        </div>
-                        <select id="order-status-filter" onchange="renderOrders()" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none">
-                            <option value="ALL">All Statuses</option>
-                            <option value="Pending">Pending</option>
-                            <option value="Paid">Paid</option>
-                            <option value="Packed">Packed</option>
-                            <option value="Shipped">Shipped / Delivered</option>
-                            <option value="Cancelled">Cancelled</option>
-                        </select>
-                    </div>
-                    <button onclick="openNewOrderModal()" class="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-bold rounded-xl transition flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-cart-plus"></i> Log Manual Order
-                    </button>
-                </div>
-
-                <!-- Orders Table -->
-                <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-xs sm:text-sm">
-                            <thead class="bg-slate-800/80 text-slate-400 font-semibold uppercase text-[11px]">
-                                <tr>
-                                    <th class="p-4">Order ID & Date</th>
-                                    <th class="p-4">Instagram & Address</th>
-                                    <th class="p-4">Items Ordered</th>
-                                    <th class="p-4">Total Amount</th>
-                                    <th class="p-4">Status</th>
-                                    <th class="p-4 text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="orders-table-body" class="divide-y divide-slate-800">
-                                <!-- Dynamic Orders Render -->
-                            </tbody>
-                        </table>
-                    </div>
+                <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-800 text-slate-400 text-[11px] uppercase">
+                            <tr><th class="p-4">Order ID</th><th class="p-4">Instagram & Address</th><th class="p-4">Items</th><th class="p-4">Total</th><th class="p-4">Status</th><th class="p-4 text-right">Action</th></tr>
+                        </thead>
+                        <tbody id="orders-table-body" class="divide-y divide-slate-800"></tbody>
+                    </table>
                 </div>
             </section>
 
-            <!-- 4. IG ORDER INBOX SIMULATOR TAB -->
-            <section id="tab-inbox" class="tab-content hidden h-[calc(100vh-140px)] flex flex-col lg:flex-row gap-4">
-                <!-- Chat Conversations Sidebar -->
-                <div class="w-full lg:w-80 bg-slate-900 rounded-2xl border border-slate-800 flex flex-col shrink-0">
-                    <div class="p-4 border-b border-slate-800">
-                        <h3 class="font-bold text-sm text-white flex items-center gap-2">
-                            <i class="fa-brands fa-instagram text-rose-500 text-lg"></i>
-                            Instagram Direct Messages
-                        </h3>
-                        <p class="text-xs text-slate-400">Order Inquiry Simulator</p>
+            <section id="tab-inbox" class="tab-content hidden flex flex-col lg:flex-row gap-4">
+                <div class="w-full lg:w-80 bg-slate-900 rounded-2xl border border-slate-800 overflow-y-auto max-h-[300px] lg:max-h-[600px]" id="inbox-chats-list"></div>
+                <div class="flex-1 bg-slate-900 rounded-2xl border border-slate-800 flex flex-col min-h-[400px]">
+                    <div class="p-4 border-b border-slate-800 flex justify-between items-center">
+                        <h4 id="chat-handle" class="font-bold text-white">Select a chat</h4>
+                        <button onclick="convertChatToOrder()" id="convert-to-order-btn" class="hidden px-3 py-1.5 bg-pink-500 text-white rounded-xl text-xs font-bold">Convert to Order</button>
                     </div>
-                    <div id="inbox-chats-list" class="flex-1 overflow-y-auto divide-y divide-slate-800/60">
-                        <!-- Dynamic Chat Conversations -->
-                    </div>
-                </div>
-
-                <!-- Active Chat Window -->
-                <div class="flex-1 bg-slate-900 rounded-2xl border border-slate-800 flex flex-col overflow-hidden">
-                    <!-- Chat Header -->
-                    <div id="chat-header" class="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
-                        <div class="flex items-center space-x-3">
-                            <div id="chat-avatar" class="w-10 h-10 rounded-full ig-bg-gradient flex items-center justify-center font-bold text-white text-sm">
-                                IG
-                            </div>
-                            <div>
-                                <h4 id="chat-handle" class="font-bold text-sm text-white">Select a Chat</h4>
-                                <span id="chat-subtext" class="text-xs text-slate-400">Click a customer to manage conversation</span>
-                            </div>
-                        </div>
-
-                        <!-- One Click Order Conversion Button -->
-                        <button id="convert-to-order-btn" onclick="convertChatToOrder()" class="hidden px-3.5 py-2 bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-2">
-                            <i class="fa-solid fa-bolt"></i>
-                            <span>Convert Chat to Order</span>
-                        </button>
-                    </div>
-
-                    <!-- Chat Messages Flow -->
-                    <div id="chat-messages-container" class="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-950/40">
-                        <div class="text-center text-slate-500 text-xs py-12">
-                            Select an Instagram chat from the left column to start handling customer orders.
-                        </div>
-                    </div>
-
-                    <!-- Quick Pre-Built Responses Toolbar -->
-                    <div id="quick-replies-bar" class="p-2 border-t border-slate-800/60 bg-slate-900/80 flex gap-2 overflow-x-auto text-xs hidden">
-                        <button onclick="insertQuickReply('pricing')" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg whitespace-nowrap border border-slate-700">
-                            ⚡ Send Prices & Stock
-                        </button>
-                        <button onclick="insertQuickReply('bank')" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg whitespace-nowrap border border-slate-700">
-                            💳 Bank Account Details
-                        </button>
-                        <button onclick="insertQuickReply('delivery')" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg whitespace-nowrap border border-slate-700">
-                            🛵 Malé/Hulhumalé Delivery Info
-                        </button>
-                    </div>
-
-                    <!-- Chat Input Field -->
-                    <form id="chat-form" onsubmit="sendChatMessage(event)" class="p-3 border-t border-slate-800 flex gap-2 bg-slate-900">
-                        <input type="text" id="chat-input-text" placeholder="Type message to Instagram user..." disabled class="flex-1 px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-rose-500 disabled:opacity-50">
-                        <button type="submit" id="chat-send-btn" disabled class="px-4 py-2.5 bg-rose-500 hover:bg-rose-600 disabled:opacity-50 text-white rounded-xl font-semibold text-xs transition">
-                            <i class="fa-solid fa-paper-plane"></i>
-                        </button>
+                    <div id="chat-messages-container" class="flex-1 p-4 overflow-y-auto space-y-3"></div>
+                    <form onsubmit="sendChatMessage(event)" class="p-3 border-t border-slate-800 flex gap-2">
+                        <input type="text" id="chat-input-text" placeholder="Type message..." class="flex-1 px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm" disabled>
+                        <button type="submit" class="px-4 py-2 bg-rose-500 text-white rounded-xl" disabled id="chat-send-btn"><i class="fa-solid fa-paper-plane"></i></button>
                     </form>
                 </div>
             </section>
 
-            <!-- 5. BUSINESS ANALYTICS TAB -->
             <section id="tab-analytics" class="tab-content hidden space-y-6">
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <!-- Sales Trend Chart -->
-                    <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800">
-                        <h3 class="font-bold text-base text-white mb-4 flex items-center gap-2">
-                            <i class="fa-solid fa-chart-area text-emerald-500"></i>
-                            Monthly Sales Performance (MVR)
-                        </h3>
-                        <div class="h-64">
-                            <canvas id="chart-monthly-sales"></canvas>
-                        </div>
-                    </div>
-
-                    <!-- Top Selling Products Chart -->
-                    <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800">
-                        <h3 class="font-bold text-base text-white mb-4 flex items-center gap-2">
-                            <i class="fa-solid fa-trophy text-amber-500"></i>
-                            Top Selling Products by Volume
-                        </h3>
-                        <div class="h-64">
-                            <canvas id="chart-top-products"></canvas>
-                        </div>
-                    </div>
-
-                    <!-- Category Share -->
-                    <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800">
-                        <h3 class="font-bold text-base text-white mb-4 flex items-center gap-2">
-                            <i class="fa-solid fa-pie-chart text-indigo-500"></i>
-                            Revenue by Category
-                        </h3>
-                        <div class="h-64 flex justify-center">
-                            <canvas id="chart-category-revenue"></canvas>
-                        </div>
-                    </div>
-
-                    <!-- Profitability Breakdown Card -->
-                    <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 flex flex-col justify-between">
-                        <div>
-                            <h3 class="font-bold text-base text-white mb-2 flex items-center gap-2">
-                                <i class="fa-solid fa-calculator text-pink-500"></i>
-                                Profit & Margin Summary
-                            </h3>
-                            <p class="text-xs text-slate-400 mb-6">Financial breakdown calculated from registered orders and inventory cost structures.</p>
-                            
-                            <div class="space-y-4">
-                                <div class="flex justify-between items-center p-3 bg-slate-950 rounded-xl border border-slate-800">
-                                    <span class="text-xs text-slate-400">Total Gross Income</span>
-                                    <span id="analytics-gross-income" class="font-bold text-white text-sm">MVR 0.00</span>
-                                </div>
-                                <div class="flex justify-between items-center p-3 bg-slate-950 rounded-xl border border-slate-800">
-                                    <span class="text-xs text-slate-400">Total Goods Cost (COGS)</span>
-                                    <span id="analytics-cogs" class="font-bold text-rose-400 text-sm">MVR 0.00</span>
-                                </div>
-                                <div class="flex justify-between items-center p-3 bg-slate-950/80 rounded-xl border border-emerald-500/30 bg-emerald-500/5">
-                                    <span class="text-xs font-semibold text-emerald-400">Net Estimated Profit</span>
-                                    <span id="analytics-net-profit" class="font-extrabold text-emerald-400 text-base">MVR 0.00</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="mt-6 text-[11px] text-slate-500 text-center">
-                            Calculated automatically using current inventory cost prices.
-                        </div>
-                    </div>
+                    <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 h-80"><canvas id="chart-monthly-sales"></canvas></div>
+                    <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 h-80"><canvas id="chart-top-products"></canvas></div>
                 </div>
             </section>
         </main>
     </div>
 
-    <!-- MODAL 1: ADD / EDIT PRODUCT MODAL -->
+    <!-- Modals -->
     <div id="product-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 space-y-4 shadow-2xl">
-            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-                <h3 id="product-modal-title" class="font-bold text-lg text-white">Add New Inventory Item</h3>
-                <button onclick="closeProductModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-            <form id="product-form" onsubmit="saveProduct(event)" class="space-y-3.5 text-xs sm:text-sm">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 space-y-4">
+            <h3 class="font-bold text-lg text-white">Product Item</h3>
+            <form id="product-form" onsubmit="saveProduct(event)" class="space-y-3 text-sm">
                 <input type="hidden" id="prod-id">
-                <div>
-                    <label class="block text-slate-400 mb-1 font-semibold">SKU Code</label>
-                    <input type="text" id="prod-sku" required placeholder="e.g. SKIN-001" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-pink-500">
+                <input type="text" id="prod-sku" required placeholder="SKU Code" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl">
+                <input type="text" id="prod-name" required placeholder="Product Name" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl">
+                <select id="prod-category" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl"><option>Skincare</option><option>Baby Care</option><option>Gift Sets</option></select>
+                <div class="grid grid-cols-3 gap-2">
+                    <input type="number" id="prod-stock" placeholder="Stock" required class="px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl">
+                    <input type="number" step="0.01" id="prod-cost" placeholder="Cost" required class="px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl">
+                    <input type="number" step="0.01" id="prod-price" placeholder="Price" required class="px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl">
                 </div>
-                <div>
-                    <label class="block text-slate-400 mb-1 font-semibold">Product Name</label>
-                    <input type="text" id="prod-name" required placeholder="e.g. Baby Gentle Wash 250ml" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-pink-500">
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-slate-400 mb-1 font-semibold">Category</label>
-                        <select id="prod-category" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-pink-500">
-                            <option value="Skincare">Skincare</option>
-                            <option value="Baby Care">Baby Care</option>
-                            <option value="Gift Sets">Gift Sets</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-slate-400 mb-1 font-semibold">Stock Quantity</label>
-                        <input type="number" inputmode="numeric" id="prod-stock" min="0" required placeholder="10" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-pink-500">
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-slate-400 mb-1 font-semibold">Cost Price (MVR)</label>
-                        <input type="number" inputmode="decimal" step="0.01" id="prod-cost" required placeholder="120.00" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-pink-500">
-                    </div>
-                    <div>
-                        <label class="block text-slate-400 mb-1 font-semibold">Selling Price (MVR)</label>
-                        <input type="number" inputmode="decimal" step="0.01" id="prod-price" required placeholder="250.00" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-pink-500">
-                    </div>
-                </div>
-                <div class="pt-3 flex justify-end gap-2 border-t border-slate-800">
-                    <button type="button" onclick="closeProductModal()" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl font-semibold">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white font-bold rounded-xl shadow-md">Save Product</button>
-                </div>
+                <div class="flex justify-end gap-2 pt-2"><button type="button" onclick="closeProductModal()" class="px-4 py-2 bg-slate-800 rounded-xl">Cancel</button><button type="submit" class="px-4 py-2 bg-pink-500 text-white rounded-xl font-bold">Save</button></div>
             </form>
         </div>
     </div>
 
-    <!-- MODAL 2: LOG NEW ORDER MODAL -->
     <div id="order-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-                <h3 class="font-bold text-lg text-white">Log Instagram Order</h3>
-                <button onclick="closeOrderModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-            <form id="order-form" onsubmit="saveOrder(event)" class="space-y-4 text-xs sm:text-sm">
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-slate-400 mb-1 font-semibold">Instagram Handle</label>
-                        <input type="text" id="order-ig" required placeholder="@username" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500">
-                    </div>
-                    <div>
-                        <label class="block text-slate-400 mb-1 font-semibold">Customer Phone</label>
-                        <input type="tel" inputmode="tel" autocomplete="tel" id="order-phone" required placeholder="777XXXX" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500">
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-slate-400 mb-1 font-semibold">Delivery Address / Specs</label>
-                    <input type="text" autocomplete="street-address" id="order-address" required placeholder="e.g. M. Flowerhouse 3rd Floor, Malé" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500">
-                </div>
-
-                <!-- Select Product & Quantity -->
-                <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-3">
-                    <label class="block text-slate-300 font-bold">Select Products to Add</label>
-                    <div class="grid grid-cols-12 gap-2">
-                        <select id="order-product-select" class="col-span-7 px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs focus:outline-none">
-                            <!-- Dynamic items -->
-                        </select>
-                        <input type="number" inputmode="numeric" id="order-product-qty" min="1" value="1" class="col-span-3 px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-center focus:outline-none">
-                        <button type="button" onclick="addItemToOrderCart()" class="col-span-2 bg-indigo-500 hover:bg-indigo-600 text-white font-bold rounded-xl text-xs">Add</button>
-                    </div>
-
-                    <!-- Cart Preview -->
-                    <div id="order-cart-items" class="space-y-1.5 pt-2">
-                        <p class="text-slate-500 text-xs italic">No items added to this order yet.</p>
-                    </div>
-                    <div class="flex justify-between items-center pt-2 border-t border-slate-800">
-                        <span class="text-xs font-semibold text-slate-400">Order Grand Total:</span>
-                        <span id="order-grand-total" class="font-bold text-white text-base">MVR 0.00</span>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-slate-400 mb-1 font-semibold">Order Status</label>
-                        <select id="order-status" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500">
-                            <option value="Pending">Pending</option>
-                            <option value="Paid">Paid</option>
-                            <option value="Packed">Packed</option>
-                            <option value="Shipped">Shipped / Delivered</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-slate-400 mb-1 font-semibold">Payment Method</label>
-                        <select id="order-payment" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500">
-                            <option value="BML Transfer">BML Transfer</option>
-                            <option value="MIB Transfer">MIB Transfer</option>
-                            <option value="Cash on Delivery">Cash on Delivery</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="pt-3 flex justify-end gap-2 border-t border-slate-800">
-                    <button type="button" onclick="closeOrderModal()" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl font-semibold">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white font-bold rounded-xl shadow-md">Complete Order</button>
-                </div>
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-6 space-y-4">
+            <h3 class="font-bold text-lg text-white">Log Order</h3>
+            <form id="order-form" onsubmit="saveOrder(event)" class="space-y-3 text-sm">
+                <input type="text" id="order-ig" placeholder="@ig_handle" required class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl">
+                <input type="text" id="order-phone" placeholder="Phone" required class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl">
+                <input type="text" id="order-address" placeholder="Delivery Address" required class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl">
+                <select id="order-product-select" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl"></select>
+                <input type="number" id="order-product-qty" value="1" min="1" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl">
+                <div class="flex justify-end gap-2"><button type="button" onclick="closeOrderModal()" class="px-4 py-2 bg-slate-800 rounded-xl">Cancel</button><button type="submit" class="px-4 py-2 bg-indigo-500 text-white rounded-xl font-bold">Create Order</button></div>
             </form>
         </div>
     </div>
-
 
     <script>
-        // --- INITIAL DEFAULT APPLICATION STATE ---
-        const initialProducts = [
-            { id: 101, sku: 'SKIN-GLOW-01', name: 'Hydrating Glow Serum 30ml', category: 'Skincare', stock: 18, cost: 140.00, price: 320.00 },
-            { id: 102, sku: 'SKIN-CLEAN-02', name: 'Gentle Foaming Cleanser 150ml', category: 'Skincare', stock: 4, cost: 95.00, price: 240.00 },
-            { id: 103, sku: 'BABY-BALM-01', name: 'Organic Baby Diaper Balm 100g', category: 'Baby Care', stock: 2, cost: 80.00, price: 195.00 },
-            { id: 104, sku: 'BABY-WASH-02', name: 'Calming Baby Shampoo 250ml', category: 'Baby Care', stock: 12, cost: 110.00, price: 260.00 },
-            { id: 105, sku: 'GIFT-MAMA-01', name: 'New Mom & Baby Deluxe Box', category: 'Gift Sets', stock: 5, cost: 450.00, price: 890.00 }
-        ];
+        // --- SUPABASE CONFIGURATION ---
+        const SUPABASE_URL = 'YOUR_SUPABASE_URL_HERE';
+        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY_HERE';
+        
+        let supabaseClient = null;
+        try {
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        } catch(e) { console.error("Supabase init error", e); }
 
-        const initialOrders = [
-            {
-                id: 'ORD-1001',
-                date: '2026-11-02',
-                igHandle: '@aishath_skincare',
-                phone: '7789123',
-                address: 'H. Sunbeam 4th Floor, Malé',
-                items: [{ productId: 101, name: 'Hydrating Glow Serum 30ml', qty: 1, price: 320.00 }],
-                total: 320.00,
-                status: 'Shipped',
-                payment: 'BML Transfer'
-            },
-            {
-                id: 'ORD-1002',
-                date: '2026-11-03',
-                igHandle: '@fathimath_mummy',
-                phone: '7901122',
-                address: 'Flat 4-2-01, Hulhumalé Phase 1',
-                items: [{ productId: 103, name: 'Organic Baby Diaper Balm 100g', qty: 2, price: 195.00 }],
-                total: 390.00,
-                status: 'Paid',
-                payment: 'BML Transfer'
+        let products = [];
+        let orders = [];
+        let chats = [];
+        let activeChatId = null;
+        let isSignUpMode = false;
+
+        async function checkUserSession() {
+            if (!supabaseClient) { document.getElementById('login-overlay').classList.remove('hidden'); return; }
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) {
+                document.getElementById('login-overlay').classList.remove('hidden');
+            } else {
+                document.getElementById('login-overlay').classList.add('hidden');
+                loadCloudData();
             }
-        ];
-
-        const initialChats = [
-            {
-                id: 'chat-1',
-                handle: '@mariyam_nook',
-                avatarText: 'MN',
-                messages: [
-                    { sender: 'them', text: 'Hello! Is the Organic Baby Diaper Balm currently in stock?' },
-                    { sender: 'me', text: 'Hey Mariyam! Yes we have 2 items left in stock.' },
-                    { sender: 'them', text: 'Awesome! I want to order 1 Balm and 1 Gentle Foaming Cleanser please. Deliver to Malé.' }
-                ],
-                prefillCart: [103, 102]
-            },
-            {
-                id: 'chat-2',
-                handle: '@haffa_glow',
-                avatarText: 'HG',
-                messages: [
-                    { sender: 'them', text: 'Hi, what is the price for the New Mom Deluxe Box?' },
-                    { sender: 'me', text: 'Hi Haffa! The Deluxe Box is MVR 890. Free delivery included within Malé!' }
-                ],
-                prefillCart: [105]
-            }
-        ];
-
-        // --- LOCAL STORAGE PERSISTENCE ---
-        let storageOk = true;
-        function loadKey(key, fallback) {
-            try { const v = JSON.parse(localStorage.getItem(key)); return Array.isArray(v) ? v : fallback; }
-            catch (e) { return fallback; }
         }
-        let products = loadKey('ig_products', initialProducts);
-        let orders = loadKey('ig_orders', initialOrders);
-        let chats = loadKey('ig_chats', initialChats);
-        let activeChatId = chats[0]?.id || null;
 
-        function saveAllState() {
+        function toggleAuthMode() {
+            isSignUpMode = !isSignUpMode;
+            document.getElementById('auth-toggle-text').textContent = isSignUpMode ? 'Sign In' : 'Sign Up';
+            document.getElementById('auth-submit-btn').textContent = isSignUpMode ? 'Create Account' : 'Sign In';
+        }
+
+        async function handleAuthSubmit(e) {
+            e.preventDefault();
+            const email = document.getElementById('auth-email').value.trim();
+            const password = document.getElementById('auth-password').value;
+            const errEl = document.getElementById('auth-error');
+            errEl.classList.add('hidden');
+
+            let res = isSignUpMode ? await supabaseClient.auth.signUp({ email, password }) : await supabaseClient.auth.signInWithPassword({ email, password });
+
+            if (res.error) {
+                errEl.textContent = res.error.message;
+                errEl.classList.remove('hidden');
+            } else {
+                if (isSignUpMode) {
+                    alert("Account created! Check your email if verification is required, or sign in.");
+                    toggleAuthMode();
+                } else {
+                    document.getElementById('login-overlay').classList.add('hidden');
+                    loadCloudData();
+                }
+            }
+        }
+
+        async function handleLogout() {
+            await supabaseClient.auth.signOut();
+            location.reload();
+        }
+
+        async function loadCloudData() {
             try {
-                localStorage.setItem('ig_products', JSON.stringify(products));
-                localStorage.setItem('ig_orders', JSON.stringify(orders));
-                localStorage.setItem('ig_chats', JSON.stringify(chats));
-            } catch (e) {
-                if (storageOk) { storageOk = false; setTimeout(() => toast("Your browser is blocking saving (private mode?). Changes will be lost on refresh.", 'error'), 0); }
+                const [pRes, oRes, cRes] = await Promise.all([
+                    supabaseClient.from('products').select('*'),
+                    supabaseClient.from('orders').select('*'),
+                    supabaseClient.from('chats').select('*')
+                ]);
+
+                products = pRes.data && pRes.data.length ? pRes.data : getDefaultProducts();
+                orders = oRes.data || [];
+                chats = cRes.data && cRes.data.length ? cRes.data : getDefaultChats();
+                
+                if (!pRes.data || pRes.data.length === 0) saveAllCloud();
+                
+                activeChatId = chats[0]?.id || null;
+                refreshAll();
+            } catch (err) {
+                console.error("Error loading cloud data", err);
             }
-            updateBadges();
         }
 
-        // --- FRIENDLY FEEDBACK: TOASTS, CONFIRM, UNDO ---
-        function toast(msg, type = 'success', undoFn = null) {
-            const colors = { success: 'border-emerald-500/40 text-emerald-300', error: 'border-red-500/40 text-red-300', info: 'border-indigo-500/40 text-indigo-300' };
-            const icons = { success: 'fa-circle-check', error: 'fa-circle-exclamation', info: 'fa-circle-info' };
+        async function saveAllCloud() {
+            try {
+                if (products.length) await supabaseClient.from('products').upsert(products);
+                if (orders.length) await supabaseClient.from('orders').upsert(orders);
+                if (chats.length) await supabaseClient.from('chats').upsert(chats);
+            } catch (e) { console.error("Sync error", e); }
+        }
+
+        function getDefaultProducts() {
+            return [
+                { id: 101, sku: 'SKIN-GLOW-01', name: 'Hydrating Glow Serum 30ml', category: 'Skincare', stock: 18, cost: 140.00, price: 320.00 },
+                { id: 102, sku: 'SKIN-CLEAN-02', name: 'Gentle Foaming Cleanser 150ml', category: 'Skincare', stock: 4, cost: 95.00, price: 240.00 },
+                { id: 103, sku: 'BABY-BALM-01', name: 'Organic Baby Diaper Balm 100g', category: 'Baby Care', stock: 2, cost: 80.00, price: 195.00 }
+            ];
+        }
+
+        function getDefaultChats() {
+            return [
+                { id: 'chat-1', handle: '@mariyam_nook', avatar_text: 'MN', messages: [{ sender: 'them', text: 'Hello! Is the Balm in stock?' }], prefill_cart: [103] }
+            ];
+        }
+
+        function toast(msg) {
             const el = document.createElement('div');
-            el.className = `toast pointer-events-auto bg-slate-800 border ${colors[type]} rounded-xl px-4 py-3 text-sm shadow-xl flex items-center gap-3 sm:max-w-sm`;
-            el.innerHTML = `<i class="fa-solid ${icons[type]}"></i><span class="flex-1 text-slate-100"></span>`;
-            el.querySelector('span').textContent = msg;
-            if (undoFn) {
-                const b = document.createElement('button');
-                b.className = 'text-pink-400 hover:text-pink-300 font-bold text-xs uppercase';
-                b.textContent = 'Undo';
-                b.onclick = () => { undoFn(); el.remove(); };
-                el.appendChild(b);
-            }
-            document.getElementById('toast-container').appendChild(el);
-            setTimeout(() => el.remove(), undoFn ? 6000 : 3500);
+            el.className = `toast bg-slate-800 border border-emerald-500/40 text-emerald-300 rounded-xl px-4 py-3 text-sm shadow-xl fixed bottom-4 right-4 z-[200]`;
+            el.textContent = msg;
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 3000);
         }
 
-        function confirmDialog(msg, onOk, okLabel = 'Confirm') {
-            const m = document.getElementById('confirm-modal');
-            document.getElementById('confirm-text').textContent = msg;
-            const ok = document.getElementById('confirm-ok');
-            ok.textContent = okLabel;
-            const close = () => m.classList.add('hidden');
-            ok.onclick = () => { close(); onOk(); };
-            document.getElementById('confirm-cancel').onclick = close;
-            m.classList.remove('hidden');
-            ok.focus();
+        function refreshAll() {
+            saveAllCloud();
+            renderDashboard();
+            renderInventory();
+            renderOrders();
         }
 
-        function refreshAll() { saveAllState(); renderInventory(); renderOrders(); renderDashboard(); }
-
-        function emptyRow(tbody, cols, icon, text) {
-            tbody.innerHTML = `<tr><td colspan="${cols}" class="p-10 text-center text-slate-500"><i class="fa-solid ${icon} text-2xl mb-2 block"></i>${text}</td></tr>`;
-        }
-
-        // Esc closes any open dialog; clicking the dark backdrop does too
-        document.addEventListener('keydown', e => {
-            if (e.key !== 'Escape') return;
-            ['confirm-modal', 'product-modal', 'order-modal'].forEach(id => document.getElementById(id).classList.add('hidden'));
-        });
-        ['product-modal', 'order-modal', 'confirm-modal'].forEach(id => {
-            document.getElementById(id).addEventListener('mousedown', e => { if (e.target.id === id) e.target.classList.add('hidden'); });
-        });
-
-        // --- FULL APP RESET ---
-        function resetFullApp() {
-            confirmDialog("Wipe all products, inventory, and sales history? This cannot be undone.", () => {
-                try { ['ig_products', 'ig_orders', 'ig_chats'].forEach(k => localStorage.removeItem(k)); } catch (e) {}
-                
-                products = [];
-                orders = [];
-                chats = [];
-                
-                saveAllState();
-                switchTab('dashboard');
-                toast("App reset to a clean slate.", 'info');
-            }, 'Yes, reset everything');
-        }
-
-        // --- NAVIGATION CONTROLLER ---
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active', 'bg-slate-800', 'text-white'));
-
-            const targetTab = document.getElementById(`tab-${tabId}`); if (targetTab) targetTab.classList.remove('hidden');  const navBtn = document.getElementById(`nav-${tabId}`);
-            if (navBtn) navBtn.classList.add('bg-slate-800', 'text-white');
-
-            const titles = {
-                dashboard: 'Dashboard Overview',
-                inventory: 'Stock & Inventory Management',
-                orders: 'Sales & Order Tracking',
-                inbox: 'Instagram Order Inbox Simulator',
-                analytics: 'Business Analytics & Financials'
-            };
-            document.getElementById('page-title').textContent = titles[tabId] || 'Dashboard';
-            try { localStorage.setItem('ig_tab', tabId); } catch (e) {}
-            document.querySelector('main').scrollTo(0, 0);
-
-            // Close mobile menu sidebar
-            document.getElementById('sidebar').classList.add('-translate-x-full');
-            document.getElementById('sidebar-backdrop').classList.add('hidden');
-
-            // Render Tab Specific Data
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('bg-slate-800', 'text-white'));
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+            document.getElementById(`nav-${tabId}`).classList.add('bg-slate-800', 'text-white');
             if (tabId === 'dashboard') renderDashboard();
             if (tabId === 'inventory') renderInventory();
             if (tabId === 'orders') renderOrders();
@@ -831,258 +397,149 @@ styve
             if (tabId === 'analytics') renderAnalytics();
         }
 
-        // --- MOBILE MENU SIDEBAR ---
-        document.getElementById('open-mobile-menu').addEventListener('click', () => {
-            document.getElementById('sidebar').classList.remove('-translate-x-full');
-            document.getElementById('sidebar-backdrop').classList.remove('hidden');
-        });
-        document.getElementById('close-mobile-menu').addEventListener('click', () => {
-            document.getElementById('sidebar').classList.add('-translate-x-full');
-            document.getElementById('sidebar-backdrop').classList.add('hidden');
-        });
-        document.getElementById('sidebar-backdrop').addEventListener('click', () => {
-            document.getElementById('sidebar').classList.add('-translate-x-full');
-            document.getElementById('sidebar-backdrop').classList.add('hidden');
-        });
-
-        // --- DASHBOARD RENDERER ---
         function renderDashboard() {
-            // Stats Calculations
-            const totalRevenue = orders.reduce((sum, o) => o.status !== 'Cancelled' ? sum + o.total : sum, 0);
-            const totalOrderCount = orders.filter(o => o.status !== 'Cancelled').length;
-            const pendingCount = orders.filter(o => o.status === 'Pending' || o.status === 'Paid').length;
-            const lowStockItems = products.filter(p => p.stock <= 5);
-
-            // Calculate profit
-            let totalProfit = 0;
-            orders.forEach(ord => {
-                if(ord.status !== 'Cancelled') {
-                    ord.items.forEach(item => {
-                        const prod = products.find(p => p.id === item.productId);
-                        const cost = prod ? prod.cost : (item.price * 0.5);
-                        totalProfit += (item.price - cost) * item.qty;
-                    });
-                }
-            });
-
-            const avgMargin = totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(1) : 0;
-
-            document.getElementById('stat-revenue').textContent = `MVR ${totalRevenue.toFixed(2)}`; document.getElementById('stat-orders').textContent = `${totalOrderCount} Orders`;
-            document.getElementById('stat-profit-gross').textContent = `Net Profit: MVR ${totalProfit.toFixed(2)}`; document.getElementById('stat-pending-orders').textContent = `${pendingCount} Pending dispatch`;
-            document.getElementById('stat-low-stock-count').textContent = `${lowStockItems.length} Items Low`;
-            document.getElementById('stat-avg-margin').textContent = `${avgMargin}%`;
-
-            // Recent Orders Tbody
-            const recentTbody = document.getElementById('recent-orders-tbody');
-            recentTbody.innerHTML = '';
-            const recentOrders = [...orders].reverse().slice(0, 5);
-
-            recentOrders.forEach(ord => {
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-800/40 transition";
-                tr.innerHTML = `
-                    <td class="px-3 py-3 font-semibold text-white">
-                        ${ord.igHandle}
-                        <div class="text-[10px] text-slate-400 font-normal">${ord.date}</div>
-                    </td>
-                    <td class="px-3 py-3 text-slate-300">${ord.items.length} item(s)</td>
-                    <td class="px-3 py-3 font-bold text-white">MVR ${ord.total.toFixed(2)}</td>
-                    <td class="px-3 py-3">${getStatusBadge(ord.status)}</td>
-                    <td class="px-3 py-3">
-                        <button onclick="switchTab('orders')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-chevron-right text-xs"></i></button>
-                    </td>
-                `;
-                recentTbody.appendChild(tr);
-            });
-
-            // Stock Alerts Panel
-            const alertBox = document.getElementById('dashboard-stock-alerts');
-            alertBox.innerHTML = '';
-            if (lowStockItems.length === 0) {
-                alertBox.innerHTML = `<div class="text-xs text-slate-500 text-center py-6">All stock levels are healthy!</div>`;
-            } else {
-                lowStockItems.forEach(item => {
-                    const alertCard = document.createElement('div');
-                    alertCard.className = 'p-3 bg-slate-950 rounded-xl border border-amber-500/30 flex items-center justify-between';
-                    alertCard.innerHTML = `
-                        <div>
-                            <h4 class="font-bold text-xs text-white">${item.name}</h4>
-                            <span class="text-[10px] text-slate-400">SKU: ${item.sku}</span>
-                        </div>
-                        <div class="text-right">
-                            <span class="px-2 py-0.5 rounded text-xs font-extrabold ${item.stock === 0 ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'}">
-                                ${item.stock === 0 ? 'Out of Stock' : `${item.stock} left`}
-                            </span>
-                            <button onclick="quickStockAdd(${item.id})" class="block mt-1 text-[10px] text-pink-400 hover:underline">Add +5 Stock</button>
-                        </div>
-                    `;
-                    alertBox.appendChild(alertCard);
-                });
-            }
+            const rev = orders.reduce((s, o) => o.status !== 'Cancelled' ? s + o.total : s, 0);
+            document.getElementById('stat-revenue').textContent = `MVR ${rev.toFixed(2)}`;
+            document.getElementById('stat-orders').textContent = `${orders.length} Orders`;
+            document.getElementById('stat-low-stock-count').textContent = `${products.filter(p => p.stock <= 5).length} Items Low`;
+            
+            const tbody = document.getElementById('recent-orders-tbody');
+            tbody.innerHTML = orders.slice(0, 5).map(o => `<tr><td class="p-3 font-bold">${o.ig_handle || o.igHandle}</td><td class="p-3">MVR ${o.total}</td><td class="p-3">${o.status}</td></tr>`).join('') || `<tr><td colspan="3" class="p-4 text-center text-slate-500">No orders yet</td></tr>`;
         }
 
-        // --- INVENTORY MANAGEMENT RENDERER ---
         function renderInventory() {
             const tbody = document.getElementById('inventory-table-body');
-            tbody.innerHTML = '';
-
-            const searchTerm = (document.getElementById('inventory-search')?.value || '').toLowerCase();
-            const catFilter = document.getElementById('inventory-category-filter')?.value || 'ALL';
-
-            const filtered = products.filter(p => {
-                const matchesSearch = p.name.toLowerCase().includes(searchTerm) || p.sku.toLowerCase().includes(searchTerm) || p.category.toLowerCase().includes(searchTerm);
-                const matchesCat = catFilter === 'ALL' || p.category === catFilter;
-                return matchesSearch && matchesCat;
-            });
-
-            if (!filtered.length) emptyRow(tbody, 7, 'fa-box-open', products.length ? 'No products match your search.' : 'No products yet. Click "Add Product" to start.');
-            filtered.forEach(p => {
-                const margin = (((p.price - p.cost) / p.price) * 100).toFixed(0);
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-800/40 transition";
-                tr.innerHTML = `
-                    <td class="p-4">
-                        <div class="font-bold text-white">${p.name}</div>
-                        <div class="text-xs text-slate-400 font-mono">${p.sku}</div>
-                    </td>
-                    <td class="p-4">
-                        <span class="px-2 py-1 bg-slate-800 text-slate-300 rounded-lg text-xs font-medium border border-slate-700">${p.category}</span>
-                    </td>
-                    <td class="p-4 text-slate-300">MVR ${p.cost.toFixed(2)}</td>
-                    <td class="p-4 font-bold text-white">MVR ${p.price.toFixed(2)}</td>
-                    <td class="p-4 text-emerald-400 font-semibold">+${margin}%</td>
-                    <td class="p-4 text-center">
-                        <span class="px-2.5 py-1 rounded-full text-xs font-bold ${p.stock === 0 ? 'bg-red-500/20 text-red-400 border border-red-500/30' : (p.stock <= 5 ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30')}">
-                            ${p.stock} units
-                        </span>
-                    </td>
-                    <td class="p-4 text-right">
-                        <div class="flex items-center justify-end space-x-1.5">
-                            <button title="Remove 1 from stock" aria-label="Decrease stock" onclick="adjustStock(${p.id}, -1)" class="w-9 h-9 sm:w-8 sm:h-8 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-bold border border-slate-700 text-xs">-</button>
-                            <button title="Add 1 to stock" aria-label="Increase stock" onclick="adjustStock(${p.id}, 1)" class="w-9 h-9 sm:w-8 sm:h-8 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-bold border border-slate-700 text-xs">+</button>
-                            <button title="Edit product" aria-label="Edit product" onclick="openEditProductModal(${p.id})" class="p-2.5 text-slate-400 hover:text-amber-400 transition ml-2"><i class="fa-solid fa-pen-to-square"></i></button>
-                            <button title="Delete product" aria-label="Delete product" onclick="deleteProduct(${p.id})" class="p-2.5 text-slate-400 hover:text-rose-400 transition"><i class="fa-solid fa-trash"></i></button>
-                        </div>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
+            tbody.innerHTML = products.map(p => `
+                <tr class="hover:bg-slate-800/40">
+                    <td class="p-4"><div class="font-bold">${p.name}</div><div class="text-xs text-slate-400">${p.sku}</div></td>
+                    <td class="p-4">${p.category}</td>
+                    <td class="p-4">MVR ${p.cost}</td>
+                    <td class="p-4 font-bold">MVR ${p.price}</td>
+                    <td class="p-4 text-center"><span class="px-2 py-1 rounded font-bold ${p.stock <= 5 ? 'bg-amber-500/20 text-amber-400' : 'bg-emerald-500/20 text-emerald-400'}">${p.stock}</span></td>
+                    <td class="p-4 text-right"><button onclick="deleteProduct(${p.id})" class="text-rose-400 hover:underline">Delete</button></td>
+                </tr>
+            `).join('');
         }
 
-        function filterInventory() {
-            renderInventory();
-        }
-
-        function adjustStock(productId, change) {
-            products = products.map(p => {
-                if (p.id === productId) {
-                    const newStock = Math.max(0, p.stock + change);
-                    return { ...p, stock: newStock };
-                }
-                return p;
-            });
-            saveAllState();
-            renderInventory();
-            renderDashboard();
-        }
-
-        function quickStockAdd(productId) {
-            adjustStock(productId, 5);
-        }
-
-        function deleteProduct(productId) {
-            const idx = products.findIndex(p => p.id === productId);
-            if (idx < 0) return;
-            const [removed] = products.splice(idx, 1);
-            refreshAll();
-            toast(`Deleted "${removed.name}"`, 'info', () => { products.splice(idx, 0, removed); refreshAll(); });
-        }
-
-        // --- SALES & ORDERS TRACKING RENDERER ---
         function renderOrders() {
             const tbody = document.getElementById('orders-table-body');
-            tbody.innerHTML = '';
-
-            const searchTerm = (document.getElementById('order-search')?.value || '').toLowerCase();
-            const statusFilter = document.getElementById('order-status-filter')?.value || 'ALL';
-
-            const filtered = orders.filter(o => {
-                const matchesSearch = o.id.toLowerCase().includes(searchTerm) || o.igHandle.toLowerCase().includes(searchTerm) || o.address.toLowerCase().includes(searchTerm);
-                const matchesStatus = statusFilter === 'ALL' || o.status === statusFilter;
-                return matchesSearch && matchesStatus;
-            });
-
-            if (!filtered.length) emptyRow(tbody, 6, 'fa-bag-shopping', orders.length ? 'No orders match your filters.' : 'No orders yet. Click "Log Order" when a customer buys.');
-            filtered.forEach(o => {
-                const itemsList = o.items.map(i => `<div class="text-xs text-slate-300">• ${i.name} (x${i.qty})</div>`).join('');
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-800/40 transition";
-                tr.innerHTML = `
-                    <td class="p-4">
-                        <div class="font-bold text-white font-mono">${o.id}</div>
-                        <div class="text-xs text-slate-400">${o.date}</div>
-                    </td>
-                    <td class="p-4">
-                        <div class="font-bold text-pink-400">${o.igHandle}</div>
-                        <div class="text-xs text-slate-400">${o.phone}</div>
-                        <div class="text-[11px] text-slate-500 truncate max-w-xs">${o.address}</div>
-                    </td>
-                    <td class="p-4">${itemsList}</td>
-                    <td class="p-4">
-                        <div class="font-bold text-white">MVR ${o.total.toFixed(2)}</div>
-                        <div class="text-[10px] text-slate-400">${o.payment}</div>
-                    </td>
-                    <td class="p-4">
-                        <select onchange="updateOrderStatus('${o.id}', this.value)" class="bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs font-semibold focus:outline-none">
-                            <option value="Pending" ${o.status === 'Pending' ? 'selected' : ''}>Pending</option>
-                            <option value="Paid" ${o.status === 'Paid' ? 'selected' : ''}>Paid</option>
-                            <option value="Packed" ${o.status === 'Packed' ? 'selected' : ''}>Packed</option>
-                            <option value="Shipped" ${o.status === 'Shipped' ? 'selected' : ''}>Shipped / Delivered</option>
-                            <option value="Cancelled" ${o.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
-                        </select>
-                    </td>
-                    <td class="p-4 text-right">
-                        <button title="Delete order" aria-label="Delete order" onclick="deleteOrder('${o.id}')" class="text-slate-400 hover:text-rose-400 p-2.5 transition"><i class="fa-solid fa-trash"></i></button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
+            tbody.innerHTML = orders.map(o => `
+                <tr class="hover:bg-slate-800/40">
+                    <td class="p-4 font-mono font-bold">${o.id}</td>
+                    <td class="p-4">${o.ig_handle || o.igHandle}<div class="text-xs text-slate-400">${o.address}</div></td>
+                    <td class="p-4">${(o.items || []).map(i => i.name).join(', ')}</td>
+                    <td class="p-4 font-bold">MVR ${o.total}</td>
+                    <td class="p-4">${o.status}</td>
+                    <td class="p-4 text-right"><button onclick="deleteOrder('${o.id}')" class="text-rose-400">Delete</button></td>
+                </tr>
+            `).join('');
         }
 
-        function getStatusBadge(status) {
-            const styles = {
-                Pending: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-                Paid: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
-                Packed: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-                Shipped: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-                Cancelled: 'bg-red-500/20 text-red-400 border-red-500/30'
-            };
-            return `<span class="px-2 py-0.5 rounded text-[11px] font-bold border ${styles[status] \vert{}\vert{} styles.Pending}">${status}</span>`;
-        }
-
-        function updateOrderStatus(orderId, newStatus) {
-            orders = orders.map(o => o.id === orderId ? { ...o, status: newStatus } : o);
-            saveAllState();
-            renderOrders();
-            renderDashboard();
-        }
-
-        function deleteOrder(orderId) {
-            const idx = orders.findIndex(o => o.id === orderId);
-            if (idx < 0) return;
-            const [removed] = orders.splice(idx, 1);
-            refreshAll();
-            toast(`Deleted order ${orderId} (stock was not re-added)`, 'info', () => { orders.splice(idx, 0, removed); refreshAll(); });
-        }
-
-        // --- IG INBOX SIMULATOR RENDERER ---
         function renderInbox() {
-            const chatsList = document.getElementById('inbox-chats-list');
-            chatsList.innerHTML = '';
+            const list = document.getElementById('inbox-chats-list');
+            list.innerHTML = chats.map(c => `
+                <div onclick="selectChat('${c.id}')" class="p-4 cursor-pointer hover:bg-slate-800 border-b border-slate-800 ${c.id === activeChatId ? 'bg-slate-800' : ''}">
+                    <div class="font-bold text-sm">${c.handle}</div>
+                </div>
+            `).join('');
+            if (activeChatId) renderActiveChat();
+        }
 
-            chats.forEach(chat => {
-                const isActive = chat.id === activeChatId;
-                const lastMsg = chat.messages[chat.messages.length - 1]?.text || '';
+        function selectChat(id) { activeChatId = id; renderInbox(); }
 
-                const chatItem = document.createElement('div');
-                chatItem.className = `p-3.5 cursor-pointer transition flex items
+        function renderActiveChat() {
+            const chat = chats.find(c => c.id === activeChatId);
+            if (!chat) return;
+            document.getElementById('chat-handle').textContent = chat.handle;
+            document.getElementById('convert-to-order-btn').classList.remove('hidden');
+            document.getElementById('chat-input-text').disabled = false;
+            document.getElementById('chat-send-btn').disabled = false;
+            
+            document.getElementById('chat-messages-container').innerHTML = (chat.messages || []).map(m => `
+                <div class="flex ${m.sender === 'me' ? 'justify-end' : 'justify-start'}">
+                    <div class="p-3 rounded-xl text-xs max-w-[75%] ${m.sender === 'me' ? 'bg-pink-600 text-white' : 'bg-slate-800 text-slate-200'}">${m.text}</div>
+                </div>
+            `).join('');
+        }
+
+        function sendChatMessage(e) {
+            e.preventDefault();
+            const input = document.getElementById('chat-input-text');
+            const txt = input.value.trim();
+            if (!txt || !activeChatId) return;
+            const chat = chats.find(c => c.id === activeChatId);
+            chat.messages.push({ sender: 'me', text: txt });
+            input.value = '';
+            saveAllCloud();
+            renderActiveChat();
+        }
+
+        function convertChatToOrder() {
+            const chat = chats.find(c => c.id === activeChatId);
+            if (!chat) return;
+            const newOrder = {
+                id: `ORD-${Math.floor(1000 + Math.random() * 9000)}`,
+                date: new Date().toISOString().split('T')[0],
+                ig_handle: chat.handle,
+                phone: '7770000',
+                address: 'Malé, Maldives',
+                items: [{ name: 'Sample Item', qty: 1, price: 250 }],
+                total: 250,
+                status: 'Pending',
+                payment: 'BML Transfer'
+            };
+            orders.unshift(newOrder);
+            saveAllCloud();
+            toast("Converted chat to order!");
+            switchTab('orders');
+        }
+
+        function openAddProductModal() { document.getElementById('product-modal').classList.remove('hidden'); }
+        function closeProductModal() { document.getElementById('product-modal').classList.add('hidden'); }
+        
+        async function saveProduct(e) {
+            e.preventDefault();
+            const p = {
+                id: Date.now(),
+                sku: document.getElementById('prod-sku').value,
+                name: document.getElementById('prod-name').value,
+                category: document.getElementById('prod-category').value,
+                stock: parseInt(document.getElementById('prod-stock').value),
+                cost: parseFloat(document.getElementById('prod-cost').value),
+                price: parseFloat(document.getElementById('prod-price').value)
+            };
+            products.push(p);
+            await saveAllCloud();
+            closeProductModal();
+            refreshAll();
+            toast("Product saved to cloud!");
+        }
+
+        async function deleteProduct(id) {
+            products = products.filter(p => p.id !== id);
+            await supabaseClient.from('products').delete().eq('id', id);
+            refreshAll();
+        }
+
+        async function deleteOrder(id) {
+            orders = orders.filter(o => o.id !== id);
+            await supabaseClient.from('orders').delete().eq('id', id);
+            refreshAll();
+        }
+
+        function renderAnalytics() {
+            const ctx = document.getElementById('chart-monthly-sales').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                    datasets: [{ label: 'Revenue (MVR)', data: [1200, 2400, 3100, 4500, 5200, 6800], borderColor: '#10b981', fill: true, backgroundColor: 'rgba(16,185,129,0.05)' }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', checkUserSession);
+    </script>
+</body>
+</html>
