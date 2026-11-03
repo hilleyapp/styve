@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#0f172a">
     <title>Styve - Business Suite</title>
+    <link rel="icon" type="image/svg+xml" href="./assets/styve-logo.svg">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
@@ -87,13 +88,10 @@
     <!-- Main Sidebar Navigation -->
     <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 w-64 bg-slate-900 border-r border-slate-800 z-50 flex flex-col transition-transform duration-300 -translate-x-full lg:translate-x-0 shrink-0">
         <div class="p-5 border-b border-slate-800/80 flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-xl ig-bg-gradient flex items-center justify-center text-white shadow-lg shadow-pink-500/20">
-                    <i class="fa-solid fa-store text-lg"></i>
-                </div>
-                <div>
-                    <h1 class="font-bold text-base text-white tracking-tight">Styve</h1>
-                    <p class="text-[11px] text-slate-400">Skincare & Baby Care</p>
+            <div class="flex items-center gap-3 min-w-0">
+                <img src="./assets/styve-logo.svg" alt="Styve logo" class="w-20 h-14 object-contain shrink-0" />
+                <div class="min-w-0">
+                    <p class="text-[11px] text-slate-400 leading-tight">Skincare & Baby Care</p>
                 </div>
             </div>
             <button id="close-mobile-menu" class="lg:hidden text-slate-400 hover:text-white p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
