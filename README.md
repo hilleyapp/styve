@@ -1,8 +1,14 @@
-<!DOCTYPE html>
+styve
 <html lang="en" class="h-full bg-slate-900 text-slate-100">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="color-scheme" content="dark">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Styve">
     <title>Styve - Business Suite</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -43,7 +49,35 @@
         ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.2); border-radius: 9999px; }
         ::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.4); }
         .ig-bg-gradient { background: linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045); }
-            @keyframes toastIn { from {opacity:0; transform:translateY(12px)} to {opacity:1; transform:none} }
+            /* --- Cross-browser / device compatibility --- */
+        html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+        html, body { height: 100%; }
+        body.h-full { height: 100vh; height: 100dvh; -webkit-tap-highlight-color: transparent; touch-action: manipulation; overscroll-behavior: none; }
+        * { scrollbar-width: thin; scrollbar-color: rgba(148,163,184,.3) transparent; }
+        .overflow-x-auto, .overflow-y-auto { -webkit-overflow-scrolling: touch; }
+        table { min-width: 640px; }
+        header.h-16 { padding-top: env(safe-area-inset-top); height: calc(4rem + env(safe-area-inset-top)); }
+        #sidebar { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+        main { padding-bottom: calc(1.5rem + env(safe-area-inset-bottom)); padding-left: max(1rem, env(safe-area-inset-left)); padding-right: max(1rem, env(safe-area-inset-right)); }
+        #toast-container { bottom: calc(1rem + env(safe-area-inset-bottom)); }
+        #product-modal > div, #order-modal > div, #confirm-modal > div { max-height: 92vh; max-height: 92dvh; overflow-y: auto; }
+        #tab-inbox { height: calc(100vh - 140px); height: calc(100dvh - 140px); }
+        @media (max-width: 1023px) {
+            #tab-inbox { height: auto; }
+            #inbox-chats-list { max-height: 11rem; }
+            #chat-messages-container { min-height: 45vh; min-height: 45dvh; }
+        }
+        @media (max-width: 640px) {
+            input, select, textarea { font-size: 16px !important; } /* stops iOS auto-zoom on focus */
+        }
+        @media (pointer: coarse) {
+            button, select, label[for] { min-height: 40px; }
+            #sidebar nav button { min-height: 44px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+        }
+        @keyframes toastIn { from {opacity:0; transform:translateY(12px)} to {opacity:1; transform:none} }
         .toast { animation: toastIn .2s ease-out; }
         button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid #ec4899; outline-offset: 2px; }
     </style>
@@ -528,17 +562,17 @@
                     </div>
                     <div>
                         <label class="block text-slate-400 mb-1 font-semibold">Stock Quantity</label>
-                        <input type="number" id="prod-stock" min="0" required placeholder="10" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-pink-500">
+                        <input type="number" inputmode="numeric" id="prod-stock" min="0" required placeholder="10" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-pink-500">
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-slate-400 mb-1 font-semibold">Cost Price (MVR)</label>
-                        <input type="number" step="0.01" id="prod-cost" required placeholder="120.00" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-pink-500">
+                        <input type="number" inputmode="decimal" step="0.01" id="prod-cost" required placeholder="120.00" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-pink-500">
                     </div>
                     <div>
                         <label class="block text-slate-400 mb-1 font-semibold">Selling Price (MVR)</label>
-                        <input type="number" step="0.01" id="prod-price" required placeholder="250.00" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-pink-500">
+                        <input type="number" inputmode="decimal" step="0.01" id="prod-price" required placeholder="250.00" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-pink-500">
                     </div>
                 </div>
                 <div class="pt-3 flex justify-end gap-2 border-t border-slate-800">
@@ -564,13 +598,13 @@
                     </div>
                     <div>
                         <label class="block text-slate-400 mb-1 font-semibold">Customer Phone</label>
-                        <input type="text" id="order-phone" required placeholder="777XXXX" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500">
+                        <input type="tel" inputmode="tel" autocomplete="tel" id="order-phone" required placeholder="777XXXX" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500">
                     </div>
                 </div>
 
                 <div>
                     <label class="block text-slate-400 mb-1 font-semibold">Delivery Address / Specs</label>
-                    <input type="text" id="order-address" required placeholder="e.g. M. Flowerhouse 3rd Floor, Malé" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500">
+                    <input type="text" autocomplete="street-address" id="order-address" required placeholder="e.g. M. Flowerhouse 3rd Floor, Malé" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500">
                 </div>
 
                 <!-- Select Product & Quantity -->
@@ -580,7 +614,7 @@
                         <select id="order-product-select" class="col-span-7 px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs focus:outline-none">
                             <!-- Dynamic items -->
                         </select>
-                        <input type="number" id="order-product-qty" min="1" value="1" class="col-span-3 px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-center focus:outline-none">
+                        <input type="number" inputmode="numeric" id="order-product-qty" min="1" value="1" class="col-span-3 px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-center focus:outline-none">
                         <button type="button" onclick="addItemToOrderCart()" class="col-span-2 bg-indigo-500 hover:bg-indigo-600 text-white font-bold rounded-xl text-xs">Add</button>
                     </div>
 
@@ -683,15 +717,24 @@
         ];
 
         // --- LOCAL STORAGE PERSISTENCE ---
-        let products = JSON.parse(localStorage.getItem('ig_products')) || initialProducts;
-        let orders = JSON.parse(localStorage.getItem('ig_orders')) || initialOrders;
-        let chats = JSON.parse(localStorage.getItem('ig_chats')) || initialChats;
+        let storageOk = true;
+        function loadKey(key, fallback) {
+            try { const v = JSON.parse(localStorage.getItem(key)); return Array.isArray(v) ? v : fallback; }
+            catch (e) { return fallback; }
+        }
+        let products = loadKey('ig_products', initialProducts);
+        let orders = loadKey('ig_orders', initialOrders);
+        let chats = loadKey('ig_chats', initialChats);
         let activeChatId = chats[0]?.id || null;
 
         function saveAllState() {
-            localStorage.setItem('ig_products', JSON.stringify(products));
-            localStorage.setItem('ig_orders', JSON.stringify(orders));
-            localStorage.setItem('ig_chats', JSON.stringify(chats));
+            try {
+                localStorage.setItem('ig_products', JSON.stringify(products));
+                localStorage.setItem('ig_orders', JSON.stringify(orders));
+                localStorage.setItem('ig_chats', JSON.stringify(chats));
+            } catch (e) {
+                if (storageOk) { storageOk = false; setTimeout(() => toast("Your browser is blocking saving (private mode?). Changes will be lost on refresh.", 'error'), 0); }
+            }
             updateBadges();
         }
 
@@ -744,9 +787,7 @@
         // --- FULL APP RESET ---
         function resetFullApp() {
             confirmDialog("Wipe all products, inventory, and sales history? This cannot be undone.", () => {
-                localStorage.removeItem('ig_products');
-                localStorage.removeItem('ig_orders');
-                localStorage.removeItem('ig_chats');
+                try { ['ig_products', 'ig_orders', 'ig_chats'].forEach(k => localStorage.removeItem(k)); } catch (e) {}
                 
                 products = [];
                 orders = [];
@@ -1280,7 +1321,7 @@
             saveAllState();
 
             closeOrderModal();
-            confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
+            if (window.confetti) confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
             toast(`Order ${newOrder.id} logged for ${newOrder.igHandle}`);
             renderDashboard();
             renderInventory();
@@ -1421,6 +1462,7 @@
             document.getElementById('analytics-cogs').textContent = `MVR ${totalCogs.toFixed(2)}`;
             document.getElementById('analytics-net-profit').textContent = `MVR ${netProfit.toFixed(2)}`;
 
+            if (typeof Chart === 'undefined') { toast("Charts couldn't load. Check your internet connection.", 'error'); return; }
             // Chart 1: Monthly Sales Line Chart
             const ctx1 = document.getElementById('chart-monthly-sales').getContext('2d');
             if (monthlyChart) monthlyChart.destroy();
@@ -1535,12 +1577,12 @@
         }
 
         // --- APP INITIALIZATION ---
-        window.onload = function () {
+        document.addEventListener('DOMContentLoaded', function () {
             saveAllState();
             let t = 'dashboard';
             try { t = localStorage.getItem('ig_tab') || 'dashboard'; } catch (e) {}
             switchTab(document.getElementById('tab-' + t) ? t : 'dashboard');
-        };
+        });
     </script>
     <div id="toast-container" class="fixed bottom-4 right-4 left-4 sm:left-auto z-[70] flex flex-col gap-2 items-stretch sm:items-end pointer-events-none" aria-live="polite"></div>
     <div id="confirm-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4 hidden">
