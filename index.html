@@ -760,7 +760,7 @@
 
         const liveChartInstances = {};
         function renderLiveCharts(salesCanvasId, productsCanvasId, key) {
-            if (typeof Chart === 'undefined') return;
+            const chartAvailable = typeof Chart !== 'undefined';
             const salesCanvas = document.getElementById(salesCanvasId);
             const productsCanvas = document.getElementById(productsCanvasId);
             if (!salesCanvas || !productsCanvas) return;
@@ -779,6 +779,18 @@
                 sold[key].qty += Number(item.qty || 0);
             }));
             const top = Object.values(sold).sort((a,b)=>b.qty-a.qty).slice(0,5);
+            if (!chartAvailable) {
+                const esc = value => String(value).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+                const salesWrap = salesCanvas.parentElement;
+                const maxRevenue = Math.max(1, ...revenueByMonth);
+                const points = revenueByMonth.map((v,i) => ({x:36 + i* (528/5), y:164 - (v/maxRevenue)*125, value:v}));
+                const polyline = points.map(p => `${p.x},${p.y}`).join(' ');
+                salesWrap.innerHTML = `<svg viewBox="0 0 600 210" role="img" aria-label="Revenue chart" style="width:100%;height:100%;overflow:visible"><line x1="30" y1="165" x2="570" y2="165" stroke="#cbd5e1"/><line x1="30" y1="35" x2="30" y2="165" stroke="#cbd5e1"/><polyline points="${polyline}" fill="none" stroke="#db2777" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>${points.map((p,i)=>`<circle cx="${p.x}" cy="${p.y}" r="4" fill="#db2777"/><text x="${p.x}" y="190" text-anchor="middle" font-size="11" fill="#64748b">${monthKeys[i].label}</text>`).join('')}<text x="36" y="22" font-size="11" fill="#64748b">MVR ${Math.max(...revenueByMonth).toFixed(0)}</text></svg>`;
+                const productsWrap = productsCanvas.parentElement;
+                const maxQty = Math.max(1, ...top.map(p=>p.qty));
+                productsWrap.innerHTML = top.length ? top.map(p=>`<div style="margin:10px 0"><div style="display:flex;justify-content:space-between;font-size:12px;color:#475569;gap:8px"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.name)}</span><b>${p.qty}</b></div><div style="height:8px;background:#f1f5f9;border-radius:8px;margin-top:4px"><div style="height:8px;width:${Math.max(3,p.qty/maxQty*100)}%;background:#db2777;border-radius:8px"></div></div></div>`).join('') : '<p style="font-size:12px;color:#94a3b8">No product sales recorded yet.</p>';
+                return;
+            }
             const baseOptions = {responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}};
             const salesChart = new Chart(salesCanvas.getContext('2d'), {type:'line', data:{labels:monthKeys.map(m=>m.label), datasets:[{label:'Revenue (MVR)',data:revenueByMonth,borderColor:'#db2777',backgroundColor:'rgba(219,39,119,.10)',fill:true,tension:.35,pointRadius:3}]}, options:{...baseOptions, scales:{y:{beginAtZero:true,ticks:{callback:value=>'MVR '+value}}}}});
             const productsChart = new Chart(productsCanvas.getContext('2d'), {type:'bar', data:{labels:top.map(p=>p.name),datasets:[{label:'Units sold',data:top.map(p=>p.qty),backgroundColor:'#db2777',borderRadius:6}]}, options:{...baseOptions,indexAxis:'y',scales:{x:{beginAtZero:true,ticks:{precision:0}}}}});
