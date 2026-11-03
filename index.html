@@ -598,8 +598,10 @@
                     <td class="p-4 font-bold text-white">MVR ${p.price.toFixed(2)}</td>
                     <td class="p-4 text-center"><span class="px-2 py-1 rounded-full text-xs font-bold ${p.stock <= 5 ? 'bg-amber-500/20 text-amber-400' : 'bg-emerald-500/20 text-emerald-400'}">${p.stock} units</span></td>
                     <td class="p-4 text-right space-x-2">
-                        <button onclick="adjustStock(${p.id}, 1)" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-xs font-bold transition">+</button>
-                        <button onclick="deleteProduct(${p.id})" class="text-rose-400 hover:text-rose-300 text-xs transition"><i class="fa-solid fa-trash"></i></button>
+                        <button onclick="adjustStock(${p.id}, -1)" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-xs font-bold transition" title="Remove one unit">−</button>
+                        <button onclick="adjustStock(${p.id}, 1)" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-xs font-bold transition" title="Add one unit">+</button>
+                        <button onclick="editProduct(${p.id})" class="px-2.5 py-1.5 bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 rounded-lg text-xs font-semibold transition"><i class="fa-solid fa-pen-to-square mr-1"></i>Edit</button>
+                        <button onclick="deleteProduct(${p.id})" class="text-rose-400 hover:text-rose-300 text-xs transition" title="Delete product"><i class="fa-solid fa-trash"></i></button>
                     </td>
                 </tr>
             `).join('') || `<tr><td colspan="6" class="p-8 text-center text-slate-500">No products found.</td></tr>`;
@@ -749,6 +751,22 @@
         function openAddProductModal() {
             document.getElementById('product-form').reset();
             document.getElementById('prod-id').value = '';
+            document.getElementById('product-modal-title').textContent = 'Add Product';
+            document.getElementById('product-modal').classList.remove('hidden');
+        }
+
+        function editProduct(id) {
+            const p = products.find(item => String(item.id) === String(id));
+            if (!p) return;
+            document.getElementById('product-form').reset();
+            document.getElementById('prod-id').value = p.id;
+            document.getElementById('prod-sku').value = p.sku || '';
+            document.getElementById('prod-name').value = p.name || '';
+            document.getElementById('prod-category').value = p.category || 'Skincare';
+            document.getElementById('prod-stock').value = Number(p.stock || 0);
+            document.getElementById('prod-cost').value = Number(p.cost || 0);
+            document.getElementById('prod-price').value = Number(p.price || 0);
+            document.getElementById('product-modal-title').textContent = 'Edit Product';
             document.getElementById('product-modal').classList.remove('hidden');
         }
 
@@ -756,19 +774,26 @@
 
         function saveProduct(e) {
             e.preventDefault();
+            const existingId = document.getElementById('prod-id').value;
             const p = {
-                id: Date.now(),
-                sku: document.getElementById('prod-sku').value,
-                name: document.getElementById('prod-name').value,
+                id: existingId ? (products.find(item => String(item.id) === String(existingId))?.id ?? Number(existingId)) : Date.now(),
+                sku: document.getElementById('prod-sku').value.trim(),
+                name: document.getElementById('prod-name').value.trim(),
                 category: document.getElementById('prod-category').value,
-                stock: parseInt(document.getElementById('prod-stock').value),
+                stock: Math.max(0, parseInt(document.getElementById('prod-stock').value, 10) || 0),
                 cost: parseFloat(document.getElementById('prod-cost').value),
                 price: parseFloat(document.getElementById('prod-price').value)
             };
-            products.push(p);
+            if (existingId) {
+                const index = products.findIndex(item => String(item.id) === String(existingId));
+                if (index < 0) { toast('Product could not be found'); return; }
+                products[index] = { ...products[index], ...p };
+            } else {
+                products.push(p);
+            }
             closeProductModal();
             refreshAll();
-            toast("Product saved successfully!");
+            toast(existingId ? 'Product updated successfully!' : 'Product saved successfully!');
         }
 
         function deleteProduct(id) {
