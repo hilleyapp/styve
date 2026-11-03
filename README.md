@@ -1,4 +1,4 @@
-Styve
+<!DOCTYPE html>
 <html lang="en" class="h-full bg-slate-900 text-slate-100">
 <head>
     <meta charset="UTF-8">
