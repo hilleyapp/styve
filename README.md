@@ -1,2 +1,915 @@
-# styve
-Online business
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>styve - Instagram Business Operations Manager</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <!-- Chart.js CDN for Analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
+
+  <!-- App Header -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-pink-500 to-rose-500 flex items-center justify-center text-white shadow-md shadow-pink-500/20">
+          <i class="fa-brands fa-instagram text-xl"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg text-slate-900 leading-tight">styve</h1>
+          <p class="text-xs text-slate-500">Instagram Business Operations (MVR)</p>
+        </div>
+      </div>
+      
+      <div class="flex items-center space-x-3">
+        <button onclick="switchTab('orders')" class="hidden sm:inline-flex items-center px-3.5 py-2 text-sm font-medium rounded-lg text-slate-700 bg-slate-100 hover:bg-slate-200 transition">
+          <i class="fa-solid fa-cart-plus mr-2 text-pink-600"></i> New Order
+        </button>
+        <div class="flex items-center space-x-2 bg-slate-100 px-3 py-1.5 rounded-full text-xs font-semibold text-slate-700">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span>Online Store (MVR)</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- Sidebar Navigation -->
+    <aside class="lg:col-span-3 space-y-2">
+      <div class="bg-white rounded-2xl border border-slate-200 p-3 shadow-xs space-y-1">
+        <button onclick="switchTab('dashboard')" id="nav-dashboard" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition text-pink-600 bg-pink-50">
+          <i class="fa-solid fa-chart-pie w-5 text-center"></i>
+          <span>Dashboard & Analytics</span>
+        </button>
+        <button onclick="switchTab('inventory')" id="nav-inventory" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+          <i class="fa-solid fa-boxes-stacked w-5 text-center"></i>
+          <span>Stock & Inventory</span>
+        </button>
+        <button onclick="switchTab('orders')" id="nav-orders" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+          <i class="fa-solid fa-receipt w-5 text-center"></i>
+          <span>Sales & Orders</span>
+        </button>
+        <button onclick="switchTab('inbox')" id="nav-inbox" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+          <i class="fa-brands fa-facebook-messenger w-5 text-center"></i>
+          <span>IG Order Inbox</span>
+          <span id="inboxBadge" class="ml-auto bg-pink-500 text-white text-xs px-2 py-0.5 rounded-full font-bold">3</span>
+        </button>
+      </div>
+
+      <!-- Quick Stats Card -->
+      <div class="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-4 text-white shadow-md">
+        <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Quick Overview</h3>
+        <div class="space-y-3">
+          <div>
+            <p class="text-xs text-slate-400">Total Revenue (MVR)</p>
+            <p id="sidebarRevenue" class="text-xl font-bold">Rf 0.00</p>
+          </div>
+          <div>
+            <p class="text-xs text-slate-400">Active Products</p>
+            <p id="sidebarProductsCount" class="text-lg font-semibold">0 items</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reset Full App Button in Sidebar Footer -->
+      <div class="pt-2">
+        <button onclick="resetFullApp()" class="w-full flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 transition">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <span>Reset Entire App</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Content Area -->
+    <main class="lg:col-span-9 space-y-6">
+
+      <!-- ==================== TAB 1: DASHBOARD ==================== -->
+      <section id="tab-dashboard" class="space-y-6">
+        <!-- Metric Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+            <div class="flex items-center justify-between text-slate-500 mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider">Total Sales</span>
+              <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                <i class="fa-solid fa-wallet"></i>
+              </div>
+            </div>
+            <h3 id="statTotalSales" class="text-2xl font-bold text-slate-900">Rf 0.00</h3>
+            <p class="text-xs text-emerald-600 mt-1 font-medium"><i class="fa-solid fa-arrow-trend-up mr-1"></i> Recorded Orders</p>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+            <div class="flex items-center justify-between text-slate-500 mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider">Net Profit (MVR)</span>
+              <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+                <i class="fa-solid fa-chart-line"></i>
+              </div>
+            </div>
+            <h3 id="statNetProfit" class="text-2xl font-bold text-slate-900">Rf 0.00</h3>
+            <p class="text-xs text-blue-600 mt-1 font-medium"><i class="fa-solid fa-shield-halved mr-1"></i> After COGS deduction</p>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+            <div class="flex items-center justify-between text-slate-500 mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider">Total Orders</span>
+              <div class="w-8 h-8 rounded-lg bg-pink-50 text-pink-600 flex items-center justify-center font-bold">
+                <i class="fa-solid fa-bag-shopping"></i>
+              </div>
+            </div>
+            <h3 id="statTotalOrders" class="text-2xl font-bold text-slate-900">0</h3>
+            <p class="text-xs text-pink-600 mt-1 font-medium"><i class="fa-solid fa-check mr-1"></i> IG DM & Manual</p>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+            <div class="flex items-center justify-between text-slate-500 mb-2">
+              <span class="text-xs font-semibold uppercase tracking-wider">Low Stock Items</span>
+              <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+              </div>
+            </div>
+            <h3 id="statLowStock" class="text-2xl font-bold text-slate-900">0</h3>
+            <p class="text-xs text-amber-600 mt-1 font-medium"><span id="outOfStockCount">0</span> out of stock</p>
+          </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+            <h3 class="font-bold text-slate-800 mb-4 flex items-center justify-between">
+              <span>Monthly Sales Revenue (MVR)</span>
+              <i class="fa-solid fa-chart-area text-slate-400 text-sm"></i>
+            </h3>
+            <div class="relative h-64">
+              <canvas id="salesChart"></canvas>
+            </div>
+          </div>
+
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+            <h3 class="font-bold text-slate-800 mb-4 flex items-center justify-between">
+              <span>Top Categories Share</span>
+              <i class="fa-solid fa-chart-pie text-slate-400 text-sm"></i>
+            </h3>
+            <div class="relative h-64 flex items-center justify-center">
+              <canvas id="categoryChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 2: INVENTORY ==================== -->
+      <section id="tab-inventory" class="space-y-6 hidden">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-5">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <div>
+              <h3 class="font-bold text-lg text-slate-900">Product Stock & Pricing</h3>
+              <p class="text-xs text-slate-500">Manage SKU quantities, costs, and selling prices in MVR.</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <!-- CSV Import Button -->
+              <label for="csvFileInput" class="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 rounded-xl text-xs font-semibold cursor-pointer shadow-xs transition flex items-center space-x-1.5">
+                <i class="fa-solid fa-file-arrow-up"></i>
+                <span>Import CSV</span>
+              </label>
+              <input type="file" id="csvFileInput" accept=".csv" class="hidden" onchange="handleProductImport(event)">
+
+              <button onclick="openProductModal()" class="bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded-xl text-xs font-semibold shadow-xs transition flex items-center space-x-1.5">
+                <i class="fa-solid fa-plus"></i>
+                <span>Add Product</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Search & Filter bar -->
+          <div class="flex items-center space-x-3 mb-4">
+            <div class="relative flex-1">
+              <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+              <input type="text" id="inventorySearch" oninput="renderInventory()" placeholder="Search products by name or SKU..." class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-pink-500">
+            </div>
+          </div>
+
+          <!-- Inventory Table -->
+          <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase bg-slate-50/50">
+                  <th class="py-3 px-4">Product & SKU</th>
+                  <th class="py-3 px-4">Category</th>
+                  <th class="py-3 px-4">Stock</th>
+                  <th class="py-3 px-4">Cost Price</th>
+                  <th class="py-3 px-4">Sell Price</th>
+                  <th class="py-3 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="inventoryTableBody" class="divide-y divide-slate-100 text-sm">
+                <!-- Dynamically Populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 3: ORDERS ==================== -->
+      <section id="tab-orders" class="space-y-6 hidden">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs p-5">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <div>
+              <h3 class="font-bold text-lg text-slate-900">Sales & Instagram Orders</h3>
+              <p class="text-xs text-slate-500">Record customer purchases and automatically deduct inventory stock.</p>
+            </div>
+            <button onclick="openOrderModal()" class="bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded-xl text-xs font-semibold shadow-xs transition flex items-center space-x-1.5 self-start">
+              <i class="fa-solid fa-cart-plus"></i>
+              <span>Create Order</span>
+            </button>
+          </div>
+
+          <!-- Orders Table -->
+          <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase bg-slate-50/50">
+                  <th class="py-3 px-4">Order ID & Date</th>
+                  <th class="py-3 px-4">Customer IG</th>
+                  <th class="py-3 px-4">Items Ordered</th>
+                  <th class="py-3 px-4">Total (MVR)</th>
+                  <th class="py-3 px-4">Status</th>
+                  <th class="py-3 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="ordersTableBody" class="divide-y divide-slate-100 text-sm">
+                <!-- Dynamically Populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 4: INBOX ==================== -->
+      <section id="tab-inbox" class="space-y-6 hidden">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden grid grid-cols-1 md:grid-cols-12 h-[600px]">
+          <!-- Chat List -->
+          <div class="md:col-span-4 border-r border-slate-200 flex flex-col bg-slate-50/50">
+            <div class="p-4 border-b border-slate-200">
+              <h3 class="font-bold text-slate-800 text-sm">Instagram DMs</h3>
+              <p class="text-xs text-slate-500">Active customer inquiries</p>
+            </div>
+            <div id="chatList" class="overflow-y-auto flex-1 divide-y divide-slate-100">
+              <!-- Dynamically Populated -->
+            </div>
+          </div>
+
+          <!-- Chat Window -->
+          <div class="md:col-span-8 flex flex-col bg-white">
+            <div id="chatHeader" class="p-4 border-b border-slate-200 flex items-center justify-between">
+              <div class="flex items-center space-x-3">
+                <div class="w-9 h-9 rounded-full bg-pink-100 text-pink-600 font-bold flex items-center justify-center text-xs" id="activeAvatar">@</div>
+                <div>
+                  <h4 id="activeCustomerName" class="font-bold text-sm text-slate-900">Select a chat</h4>
+                  <p class="text-xs text-emerald-600 font-medium">Active Inquiry</p>
+                </div>
+              </div>
+              <button onclick="convertChatToOrder()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-xs transition flex items-center space-x-1">
+                <i class="fa-solid fa-bolt"></i>
+                <span>Convert to Order</span>
+              </button>
+            </div>
+
+            <!-- Messages Area -->
+            <div id="chatMessages" class="flex-1 p-4 overflow-y-auto space-y-3 bg-slate-50/30 custom-scrollbar">
+              <div class="text-center text-slate-400 text-xs py-10">Select an Instagram conversation from the left to view messages.</div>
+            </div>
+
+            <!-- Quick Template Bar -->
+            <div class="p-2 border-t border-slate-200 bg-white flex items-center space-x-2 overflow-x-auto">
+              <span class="text-xs text-slate-400 font-semibold pl-2">Templates:</span>
+              <button onclick="sendQuickReply('Hello! Yes, all items are currently in stock and available for immediate delivery in Malé & Hulhumalé.')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-md text-xs whitespace-nowrap">Stock inquiry</button>
+              <button onclick="sendQuickReply('Delivery is free in Malé for orders above Rf 300. Otherwise Rf 30 delivery charge applies.')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-md text-xs whitespace-nowrap">Delivery info</button>
+              <button onclick="sendQuickReply('Please transfer via BML to Account: 7730000012345 (styve) and send receipt screenshot here.')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-md text-xs whitespace-nowrap">Bank details</button>
+            </div>
+
+            <!-- Reply Box -->
+            <div class="p-3 border-t border-slate-200 bg-white flex items-center space-x-2">
+              <input type="text" id="chatReplyInput" placeholder="Reply to Instagram DM..." class="flex-1 bg-slate-100 border border-slate-200 px-4 py-2 rounded-xl text-xs focus:outline-none focus:border-pink-500">
+              <button onclick="sendChatMessage()" class="bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded-xl text-xs font-semibold transition">
+                <i class="fa-solid fa-paper-plane"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ==================== MODALS ==================== -->
+
+  <!-- Add/Edit Product Modal -->
+  <div id="productModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 id="productModalTitle" class="font-bold text-slate-900">Add New Product</h3>
+        <button onclick="closeProductModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <input type="hidden" id="editProductId">
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Product Name</label>
+          <input type="text" id="prodName" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-pink-500" placeholder="e.g. Daily Moisture Lotion">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">SKU Code</label>
+            <input type="text" id="prodSku" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-pink-500" placeholder="e.g. SKU-001">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Category</label>
+            <input type="text" id="prodCategory" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-pink-500" placeholder="e.g. Skincare">
+          </div>
+        </div>
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Stock Qty</label>
+            <input type="number" id="prodStock" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-pink-500" value="10">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Cost Price (Rf)</label>
+            <input type="number" id="prodCost" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-pink-500" value="100">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Sell Price (Rf)</label>
+            <input type="number" id="prodPrice" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-pink-500" value="200">
+          </div>
+        </div>
+      </div>
+      <div class="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+        <button onclick="closeProductModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold">Cancel</button>
+        <button onclick="saveProduct()" class="px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-xl text-xs font-semibold">Save Product</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Order Modal -->
+  <div id="orderModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="font-bold text-slate-900">Create New Sale Order</h3>
+        <button onclick="closeOrderModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="space-y-3">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Customer Instagram Handle</label>
+            <input type="text" id="orderCustomer" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-pink-500" placeholder="@customer_name">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Fulfillment Status</label>
+            <select id="orderStatus" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-pink-500">
+              <option value="Paid & Confirmed">Paid & Confirmed</option>
+              <option value="Pending Transfer">Pending Transfer</option>
+              <option value="Dispatched / Out for Delivery">Dispatched / Out for Delivery</option>
+              <option value="Completed">Completed</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Select Product</label>
+          <select id="orderProductSelect" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-pink-500">
+            <!-- Dynamically populated -->
+          </select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Quantity</label>
+            <input type="number" id="orderQuantity" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-pink-500" value="1" min="1">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Delivery Location</label>
+            <input type="text" id="orderAddress" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-pink-500" value="Malé">
+          </div>
+        </div>
+      </div>
+      <div class="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+        <button onclick="closeOrderModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold">Cancel</button>
+        <button onclick="saveOrder()" class="px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-xl text-xs font-semibold">Confirm & Deduct Stock</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript Application Logic -->
+  <script>
+    // Initial State & LocalStorage Synchronization
+    let products = JSON.parse(localStorage.getItem('ig_shop_products')) || [
+      { id: 'p1', name: 'Daily Moisture Lotion 18g', sku: 'SKU-AV-18', category: 'Skincare', stock: 24, costPrice: 120, sellPrice: 180 },
+      { id: 'p2', name: 'Soothing Relief Wash 354ml', sku: 'SKU-AV-354', category: 'Bath & Body', stock: 12, costPrice: 250, sellPrice: 380 },
+      { id: 'p3', name: 'Continuous Protection Sunscreen', sku: 'SKU-AV-SUN', category: 'Sun Protection', stock: 4, costPrice: 210, sellPrice: 320 },
+      { id: 'p4', name: 'Baby Soothing Diaper Rash Cream', sku: 'SKU-AV-CRM', category: 'Skincare', stock: 15, costPrice: 140, sellPrice: 220 }
+    ];
+
+    let orders = JSON.parse(localStorage.getItem('ig_shop_orders')) || [
+      { id: 'ORD-1001', date: '2026-10-24 14:30', customer: '@aish_mv', items: 'Daily Moisture Lotion 18g (x2)', total: 360, status: 'Completed' },
+      { id: 'ORD-1002', date: '2026-10-25 09:15', customer: '@mariyam_sh', items: 'Soothing Relief Wash 354ml (x1)', total: 380, status: 'Paid & Confirmed' }
+    ];
+
+    let chats = [
+      {
+        id: 'c1',
+        customer: '@aish_mv',
+        avatar: 'A',
+        messages: [
+          { sender: 'customer', text: 'Hi! Is the Aveeno Daily Lotion available?' },
+          { sender: 'me', text: 'Hello! Yes, it is currently in stock at Rf 180.' },
+          { sender: 'customer', text: 'Great! I would like to order 2 bottles please. Delivering to Malé.' }
+        ]
+      },
+      {
+        id: 'c2',
+        customer: '@mariyam_sh',
+        avatar: 'M',
+        messages: [
+          { sender: 'customer', text: 'Assalaam alaikum! Do you have the Soothing Relief Wash in stock?' },
+          { sender: 'me', text: 'Wa alaikumussalam! Yes we do, priced at Rf 380.' }
+        ]
+      },
+      {
+        id: 'c3',
+        customer: '@hassan_k',
+        avatar: 'H',
+        messages: [
+          { sender: 'customer', text: 'Sent BML transfer screenshot for my sunscreen order!' }
+        ]
+      }
+    ];
+
+    let activeChatId = 'c1';
+    let salesChartInstance = null;
+    let categoryChartInstance = null;
+
+    // Initialization on DOM Load
+    document.addEventListener('DOMContentLoaded', () => {
+      renderInventory();
+      renderOrders();
+      renderChatsList();
+      selectChat(activeChatId);
+      updateAnalytics();
+    });
+
+    // Tab Switcher
+    function switchTab(tabId) {
+      ['dashboard', 'inventory', 'orders', 'inbox'].forEach(t => {
+        document.getElementById(`tab-${t}`).classList.add('hidden');
+        const navBtn = document.getElementById(`nav-${t}`);
+        if (navBtn) {
+          navBtn.className = "w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition text-slate-600 hover:bg-slate-50 hover:text-slate-900";
+        }
+      });
+      document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+      const activeNav = document.getElementById(`nav-${tabId}`);
+      if (activeNav) {
+        activeNav.className = "w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition text-pink-600 bg-pink-50";
+      }
+      if (tabId === 'dashboard') {
+        updateAnalytics();
+      }
+    }
+
+    // Storage Functions
+    function saveStorage() {
+      localStorage.setItem('ig_shop_products', JSON.stringify(products));
+      localStorage.setItem('ig_shop_orders', JSON.stringify(orders));
+      updateAnalytics();
+    }
+
+    // Full App Reset Function
+    function resetFullApp() {
+      if (confirm("Are you sure you want to wipe all products, inventory, and sales history? This action cannot be undone.")) {
+        localStorage.removeItem('ig_shop_products');
+        localStorage.removeItem('ig_shop_orders');
+        products = [];
+        orders = [];
+        renderInventory();
+        renderOrders();
+        updateAnalytics();
+        alert("Your entire styve app has been successfully reset to a clean slate.");
+      }
+    }
+
+    // CSV Product Catalog Importer
+    function handleProductImport(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        parseCSVData(e.target.result);
+      };
+      reader.readAsText(file);
+    }
+
+    function parseCSVData(csvText) {
+      const lines = csvText.split('\n');
+      if (lines.length < 2) {
+        alert("CSV file appears empty or invalid.");
+        return;
+      }
+      let count = 0;
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        const vals = line.split(',').map(v => v.trim());
+        const prod = {
+          id: 'prod_' + Date.now() + '_' + i,
+          name: vals[0] || 'Imported Product',
+          sku: vals[1] || ('SKU-' + Math.floor(Math.random()*1000)),
+          category: vals[2] || 'General',
+          stock: parseInt(vals[3]) || 10,
+          costPrice: parseFloat(vals[4]) || 100,
+          sellPrice: parseFloat(vals[5]) || 200
+        };
+        products.push(prod);
+        count++;
+      }
+      saveStorage();
+      renderInventory();
+      alert(`Successfully imported ${count} products into styve!`);
+      document.getElementById('csvFileInput').value = '';
+    }
+
+    // Render Inventory Table
+    function renderInventory() {
+      const tbody = document.getElementById('inventoryTableBody');
+      const search = document.getElementById('inventorySearch').value.toLowerCase();
+      tbody.innerHTML = '';
+
+      let lowStockCount = 0;
+      let outStockCount = 0;
+
+      const filtered = products.filter(p => p.name.toLowerCase().includes(search) || p.sku.toLowerCase().includes(search));
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-400 text-xs">No products found. Add products or import via CSV.</td></tr>`;
+      }
+
+      filtered.forEach(p => {
+        if (p.stock <= 0) outStockCount++;
+        else if (p.stock <= 5) lowStockCount++;
+
+        let stockBadge = `<span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700">${p.stock} units</span>`;
+        if (p.stock <= 0) stockBadge = `<span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700">Out of Stock</span>`;
+        else if (p.stock <= 5) stockBadge = `<span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700">Low (${p.stock})</span>`;
+
+        tbody.innerHTML += `
+          <tr class="hover:bg-slate-50/80 transition">
+            <td class="py-3 px-4">
+              <p class="font-bold text-slate-900">${p.name}</p>
+              <p class="text-xs text-slate-400 font-mono">${p.sku}</p>
+            </td>
+            <td class="py-3 px-4 text-slate-600 text-xs">${p.category}</td>
+            <td class="py-3 px-4">${stockBadge}</td>
+            <td class="py-3 px-4 text-slate-600 text-xs">Rf ${p.costPrice.toFixed(2)}</td>
+            <td class="py-3 px-4 font-semibold text-slate-900 text-xs">Rf ${p.sellPrice.toFixed(2)}</td>
+            <td class="py-3 px-4 text-right space-x-1">
+              <button onclick="adjustStock('${p.id}', 5)" title="Quick Restock +5" class="px-2 py-1 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-lg text-xs font-semibold"><i class="fa-solid fa-plus"></i> 5</button>
+              <button onclick="editProduct('${p.id}')" class="px-2 py-1 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-lg text-xs"><i class="fa-solid fa-pen"></i></button>
+              <button onclick="deleteProduct('${p.id}')" class="px-2 py-1 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg text-xs"><i class="fa-solid fa-trash"></i></button>
+            </td>
+          </tr>
+        `;
+      });
+
+      document.getElementById('statLowStock').innerText = lowStockCount + outStockCount;
+      document.getElementById('outOfStockCount').innerText = outStockCount;
+      document.getElementById('sidebarProductsCount').innerText = products.length + ' items';
+    }
+
+    // Product CRUD operations
+    function openProductModal(id = null) {
+      document.getElementById('productModal').classList.remove('hidden');
+      document.getElementById('productModal').classList.add('flex');
+      if (id) {
+        const p = products.find(x => x.id === id);
+        document.getElementById('productModalTitle').innerText = 'Edit Product';
+        document.getElementById('editProductId').value = p.id;
+        document.getElementById('prodName').value = p.name;
+        document.getElementById('prodSku').value = p.sku;
+        document.getElementById('prodCategory').value = p.category;
+        document.getElementById('prodStock').value = p.stock;
+        document.getElementById('prodCost').value = p.costPrice;
+        document.getElementById('prodPrice').value = p.sellPrice;
+      } else {
+        document.getElementById('productModalTitle').innerText = 'Add New Product';
+        document.getElementById('editProductId').value = '';
+        document.getElementById('prodName').value = '';
+        document.getElementById('prodSku').value = 'SKU-' + Math.floor(100 + Math.random()*900);
+        document.getElementById('prodCategory').value = 'Skincare';
+        document.getElementById('prodStock').value = '10';
+        document.getElementById('prodCost').value = '100';
+        document.getElementById('prodPrice').value = '200';
+      }
+    }
+
+    function closeProductModal() {
+      document.getElementById('productModal').classList.remove('flex');
+      document.getElementById('productModal').classList.add('hidden');
+    }
+
+    function saveProduct() {
+      const id = document.getElementById('editProductId').value;
+      const name = document.getElementById('prodName').value;
+      const sku = document.getElementById('prodSku').value;
+      const category = document.getElementById('prodCategory').value;
+      const stock = parseInt(document.getElementById('prodStock').value) || 0;
+      const costPrice = parseFloat(document.getElementById('prodCost').value) || 0;
+      const sellPrice = parseFloat(document.getElementById('prodPrice').value) || 0;
+
+      if (!name) { alert("Please enter product name"); return; }
+
+      if (id) {
+        const p = products.find(x => x.id === id);
+        p.name = name; p.sku = sku; p.category = category; p.stock = stock; p.costPrice = costPrice; p.sellPrice = sellPrice;
+      } else {
+        products.push({ id: 'prod_' + Date.now(), name, sku, category, stock, costPrice, sellPrice });
+      }
+
+      saveStorage();
+      renderInventory();
+      closeProductModal();
+    }
+
+    function adjustStock(id, amount) {
+      const p = products.find(x => x.id === id);
+      if (p) {
+        p.stock = Math.max(0, p.stock + amount);
+        saveStorage();
+        renderInventory();
+      }
+    }
+
+    function deleteProduct(id) {
+      if (confirm("Delete this product from inventory?")) {
+        products = products.filter(x => x.id !== id);
+        saveStorage();
+        renderInventory();
+      }
+    }
+
+    // Orders Management
+    function renderOrders() {
+      const tbody = document.getElementById('ordersTableBody');
+      tbody.innerHTML = '';
+
+      if (orders.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-400 text-xs">No orders recorded yet.</td></tr>`;
+        return;
+      }
+
+      orders.forEach(o => {
+        let badgeClass = "bg-amber-50 text-amber-700";
+        if (o.status === 'Completed') badgeClass = "bg-emerald-50 text-emerald-700";
+        else if (o.status === 'Paid & Confirmed') badgeClass = "bg-blue-50 text-blue-700";
+
+        tbody.innerHTML += `
+          <tr class="hover:bg-slate-50/80 transition">
+            <td class="py-3 px-4">
+              <p class="font-bold text-slate-900">${o.id}</p>
+              <p class="text-xs text-slate-400">${o.date}</p>
+            </td>
+            <td class="py-3 px-4 font-medium text-pink-600 text-xs">${o.customer}</td>
+            <td class="py-3 px-4 text-slate-600 text-xs">${o.items}</td>
+            <td class="py-3 px-4 font-bold text-slate-900 text-xs">Rf ${o.total.toFixed(2)}</td>
+            <td class="py-3 px-4"><span class="px-2.5 py-1 rounded-full text-xs font-semibold ${badgeClass}">${o.status}</span></td>
+            <td class="py-3 px-4 text-right">
+              <button onclick="deleteOrder('${o.id}')" class="px-2 py-1 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg text-xs"><i class="fa-solid fa-trash"></i></button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    function openOrderModal(presetCustomer = '', presetItemDesc = '', presetTotal = 0) {
+      document.getElementById('orderModal').classList.remove('hidden');
+      document.getElementById('orderModal').classList.add('flex');
+      
+      if (presetCustomer) document.getElementById('orderCustomer').value = presetCustomer;
+
+      // Populate product dropdown
+      const sel = document.getElementById('orderProductSelect');
+      sel.innerHTML = '';
+      products.forEach(p => {
+        sel.innerHTML += `<option value="${p.id}" data-price="${p.sellPrice}" data-name="${p.name}">${p.name} (Rf ${p.sellPrice}) - Stock: ${p.stock}</option>`;
+      });
+    }
+
+    function closeOrderModal() {
+      document.getElementById('orderModal').classList.remove('flex');
+      document.getElementById('orderModal').classList.add('hidden');
+    }
+
+    function saveOrder() {
+      const customer = document.getElementById('orderCustomer').value || '@instagram_buyer';
+      const status = document.getElementById('orderStatus').value;
+      const sel = document.getElementById('orderProductSelect');
+      const prodId = sel.value;
+      const qty = parseInt(document.getElementById('orderQuantity').value) || 1;
+      const address = document.getElementById('orderAddress').value;
+
+      const product = products.find(x => x.id === prodId);
+      if (!product) { alert("Please select a product"); return; }
+
+      if (product.stock < qty) {
+        alert(`Insufficient stock! Only ${product.stock} units available.`);
+        return;
+      }
+
+      // Deduct stock automatically
+      product.stock -= qty;
+
+      const total = product.sellPrice * qty;
+      const newOrder = {
+        id: 'ORD-' + Math.floor(1000 + Math.random()*9000),
+        date: new Date().toISOString().replace('T', ' ').substring(0, 16),
+        customer: customer,
+        items: `${product.name} (x${qty})`,
+        total: total,
+        status: status
+      };
+
+      orders.unshift(newOrder);
+      saveStorage();
+      renderInventory();
+      renderOrders();
+      closeOrderModal();
+      alert("Order successfully created and inventory stock automatically deducted!");
+    }
+
+    function deleteOrder(id) {
+      if (confirm("Delete this order record?")) {
+        orders = orders.filter(x => x.id !== id);
+        saveStorage();
+        renderOrders();
+      }
+    }
+
+    // IG Inbox Simulator
+    function renderChatsList() {
+      const list = document.getElementById('chatList');
+      list.innerHTML = '';
+      chats.forEach(c => {
+        const lastMsg = c.messages[c.messages.length - 1]?.text || 'No messages';
+        const activeClass = c.id === activeChatId ? 'bg-pink-50 border-l-4 border-pink-600' : 'hover:bg-slate-50';
+        list.innerHTML += `
+          <div onclick="selectChat('${c.id}')" class="p-3 cursor-pointer transition ${activeClass} flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-full bg-pink-100 text-pink-600 font-bold flex items-center justify-center text-xs shrink-0">${c.avatar}</div>
+            <div class="flex-1 min-w-0">
+              <h4 class="font-bold text-xs text-slate-900 truncate">${c.customer}</h4>
+              <p class="text-xs text-slate-500 truncate">${lastMsg}</p>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    function selectChat(id) {
+      activeChatId = id;
+      const chat = chats.find(x => x.id === id);
+      if (!chat) return;
+
+      document.getElementById('activeCustomerName').innerText = chat.customer;
+      document.getElementById('activeAvatar').innerText = chat.avatar;
+
+      const container = document.getElementById('chatMessages');
+      container.innerHTML = '';
+      chat.messages.forEach(m => {
+        if (m.sender === 'customer') {
+          container.innerHTML += `
+            <div class="flex items-start space-x-2">
+              <div class="w-7 h-7 rounded-full bg-slate-200 text-slate-600 font-bold flex items-center justify-center text-[10px] shrink-0">${chat.avatar}</div>
+              <div class="bg-white border border-slate-200 p-3 rounded-2xl rounded-tl-xs text-xs text-slate-800 max-w-[75%] shadow-xs">
+                ${m.text}
+              </div>
+            </div>
+          `;
+        } else {
+          container.innerHTML += `
+            <div class="flex items-start justify-end space-x-2">
+              <div class="bg-pink-600 text-white p-3 rounded-2xl rounded-tr-xs text-xs max-w-[75%] shadow-xs">
+                ${m.text}
+              </div>
+            </div>
+          `;
+        }
+      });
+      container.scrollTop = container.scrollHeight;
+      renderChatsList();
+    }
+
+    function sendQuickReply(text) {
+      document.getElementById('chatReplyInput').value = text;
+    }
+
+    function sendChatMessage() {
+      const input = document.getElementById('chatReplyInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const chat = chats.find(x => x.id === activeChatId);
+      if (chat) {
+        chat.messages.push({ sender: 'me', text: text });
+        input.value = '';
+        selectChat(activeChatId);
+      }
+    }
+
+    function convertChatToOrder() {
+      const chat = chats.find(x => x.id === activeChatId);
+      if (!chat) return;
+      switchTab('orders');
+      openOrderModal(chat.customer);
+    }
+
+    // Analytics & Charts
+    function updateAnalytics() {
+      let totalRevenue = 0;
+      let totalCost = 0;
+
+      orders.forEach(o => {
+        totalRevenue += o.total;
+        totalCost += (o.total * 0.6);
+      });
+
+      const netProfit = totalRevenue - totalCost;
+
+      document.getElementById('statTotalSales').innerText = `Rf ${totalRevenue.toFixed(2)}`;
+      document.getElementById('statNetProfit').innerText = `Rf ${netProfit.toFixed(2)}`;
+      document.getElementById('statTotalOrders').innerText = orders.length;
+
+      document.getElementById('sidebarRevenue').innerText = `Rf ${totalRevenue.toFixed(2)}`;
+
+      // Render Charts
+      renderCharts(totalRevenue);
+    }
+
+    function renderCharts(revenue) {
+      const ctxSales = document.getElementById('salesChart').getContext('2d');
+      if (salesChartInstance) salesChartInstance.destroy();
+
+      salesChartInstance = new Chart(ctxSales, {
+        type: 'line',
+        data: {
+          labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'],
+          datasets: [{
+            label: 'Sales Revenue (MVR)',
+            data: [1200, 1900, 2400, 3100, 2800, 3500, 4200, 4900, 5600, Math.max(6200, revenue)],
+            borderColor: '#db2777',
+            backgroundColor: 'rgba(219, 39, 119, 0.05)',
+            fill: true,
+            tension: 0.3,
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } }
+        }
+      });
+
+      const ctxCategory = document.getElementById('categoryChart').getContext('2d');
+      if (categoryChartInstance) categoryChartInstance.destroy();
+
+      categoryChartInstance = new Chart(ctxCategory, {
+        type: 'doughnut',
+        data: {
+          labels: ['Skincare', 'Bath & Body', 'Sun Protection'],
+          datasets: [{
+            data: [55, 30, 15],
+            backgroundColor: ['#db2777', '#f472b6', '#fbcfe8'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } }
+        }
+      });
+    }
+  </script>
+</body>
+</html>
