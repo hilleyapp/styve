@@ -144,6 +144,99 @@
         }
     </style>
 
+
+    <style id="inventory-screen-fit">
+      /* Keep the inventory workspace inside the visible viewport. */
+      body:has(#tab-inventory:not(.hidden)) {
+        height: 100vh;
+        height: 100dvh;
+        min-height: 0;
+        overflow: hidden !important;
+      }
+      body:has(#tab-inventory:not(.hidden)) > .flex-1.flex.flex-col {
+        height: 100vh;
+        height: 100dvh;
+        min-height: 0 !important;
+        overflow: hidden;
+      }
+      body:has(#tab-inventory:not(.hidden)) main {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: hidden !important;
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+      }
+      #tab-inventory:not(.hidden) {
+        height: 100%;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        gap: .75rem;
+        overflow: hidden;
+      }
+      #tab-inventory > :first-child {
+        flex: 0 0 auto;
+        gap: .75rem;
+        padding: .75rem;
+      }
+      #tab-inventory > :first-child > div {
+        min-width: 0;
+      }
+      #tab-inventory > :last-child {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      #tab-inventory > :last-child > div {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+      }
+      #tab-inventory table {
+        width: 100%;
+        min-width: 650px;
+        border-collapse: separate;
+        border-spacing: 0;
+      }
+      #tab-inventory thead {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+      }
+      #tab-inventory th,
+      #tab-inventory td {
+        padding: .65rem .8rem;
+      }
+      @media (max-width: 640px) {
+        body:has(#tab-inventory:not(.hidden)) main {
+          padding: .65rem !important;
+        }
+        #tab-inventory:not(.hidden) {
+          gap: .6rem;
+        }
+        #tab-inventory > :first-child {
+          padding: .65rem;
+          gap: .55rem;
+        }
+        #tab-inventory > :first-child > div {
+          flex-basis: 100%;
+          min-width: 100%;
+        }
+        #tab-inventory > :first-child > button {
+          width: 100%;
+          justify-content: center;
+        }
+        #tab-inventory th,
+        #tab-inventory td {
+          padding: .55rem .6rem;
+          font-size: 11px;
+        }
+      }
+    </style>
+
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-full">
 
