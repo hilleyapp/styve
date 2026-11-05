@@ -813,26 +813,35 @@
             if (cloudUser) { setCloudSyncIndicator('syncing'); writeCloudState(); }
             else setCloudSyncIndicator('connecting');
         });
+        function isCloudPasswordRecoveryUrl() {
+            const query = new URLSearchParams(window.location.search);
+            const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+            return query.has('reset-password') || hash.get('type') === 'recovery';
+        }
         async function initCloudApp() {
             setCloudSyncIndicator(navigator.onLine ? 'connecting' : 'offline');
             if (!window.supabase?.createClient) { setCloudStatus('Could not load Supabase. Check your internet connection and refresh.', true); return; }
-            const { data, error } = await supabaseClient.auth.getSession();
-            if (error) { setCloudStatus(error.message, true); return; }
-            if (data.session) await startCloudSession(data.session);
-            else document.getElementById('cloud-auth-gate').classList.remove('hidden');
+            // Subscribe before reading the session so the PASSWORD_RECOVERY event cannot be missed.
             supabaseClient.auth.onAuthStateChange((event, session) => {
                 if (event === 'PASSWORD_RECOVERY') {
                     showCloudAuthPanel('new-password');
                     document.getElementById('cloud-new-password-status').textContent = 'Enter and confirm your new password.';
                     return;
                 }
-                if (session && !cloudUser && event !== 'USER_UPDATED') setTimeout(() => startCloudSession(session), 0);
+                if (session && !cloudUser && event !== 'USER_UPDATED' && !isCloudPasswordRecoveryUrl()) {
+                    setTimeout(() => startCloudSession(session), 0);
+                }
                 if (!session) { cloudReady = false; cloudUser = null; document.getElementById('cloud-auth-gate').classList.remove('hidden'); }
             });
-            if (new URLSearchParams(window.location.search).has('reset-password')) {
+            if (isCloudPasswordRecoveryUrl()) {
+                document.getElementById('cloud-auth-gate').classList.remove('hidden');
                 showCloudAuthPanel('new-password');
-                document.getElementById('cloud-new-password-status').textContent = 'Open the password-reset link from your email to continue.';
+                document.getElementById('cloud-new-password-status').textContent = 'Enter and confirm your new password.';
             }
+            const { data, error } = await supabaseClient.auth.getSession();
+            if (error) { setCloudStatus(error.message, true); return; }
+            if (data.session && !isCloudPasswordRecoveryUrl()) await startCloudSession(data.session);
+            else document.getElementById('cloud-auth-gate').classList.remove('hidden');
         }
         function showCloudAuthPanel(panel) {
             document.getElementById('cloud-auth-form').classList.toggle('hidden', panel !== 'login');
