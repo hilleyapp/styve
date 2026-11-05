@@ -801,6 +801,9 @@
             refreshAll(); renderInbox();
             toast(remote.data ? 'Styve cloud connected. Shared data loaded.' : 'Styve cloud connected. Workspace created.');
         }
+        // Expose the two functions used by the separate access-code UI script.
+        window.connectStyveCloud = connectStyveCloud;
+        window.setCloudSyncIndicator = setCloudSyncIndicator;
         window.addEventListener('offline', () => setCloudSyncIndicator('offline'));
         window.addEventListener('online', () => { if (cloudToken) { setCloudSyncIndicator('syncing'); pollCloudState(); if (cloudSavePending) writeCloudState(); } });
         async function applyCloudState(data) {
