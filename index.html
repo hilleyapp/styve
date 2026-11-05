@@ -804,6 +804,7 @@
         // Expose the two functions used by the separate access-code UI script.
         window.connectStyveCloud = connectStyveCloud;
         window.setCloudSyncIndicator = setCloudSyncIndicator;
+        window.styveSavedAccessCode = cloudToken;
         window.addEventListener('offline', () => setCloudSyncIndicator('offline'));
         window.addEventListener('online', () => { if (cloudToken) { setCloudSyncIndicator('syncing'); pollCloudState(); if (cloudSavePending) writeCloudState(); } });
         async function applyCloudState(data) {
@@ -1914,7 +1915,7 @@
           submit.disabled = true; submit.textContent = 'Connecting…';
           status.textContent = 'Checking access code and loading shared data…';
           try {
-            await connectStyveCloud(input.value);
+            await window.connectStyveCloud(input.value);
           } catch (error) {
             status.textContent = error.message || 'Could not connect. Check the code and try again.';
             status.className = 'text-xs text-rose-400';
@@ -1922,9 +1923,9 @@
             submit.disabled = false; submit.textContent = 'Connect & Sync';
           }
         });
-        if (cloudToken) input.value = cloudToken;
-        setCloudSyncIndicator('connecting');
-        if (cloudToken) form.requestSubmit();
+        if (window.styveSavedAccessCode) input.value = window.styveSavedAccessCode;
+        window.setCloudSyncIndicator('connecting');
+        if (window.styveSavedAccessCode) form.requestSubmit();
         else input.focus();
       });
     </script>
