@@ -344,16 +344,61 @@
 
     <style id="styve-inventory-view-layout">
       #inventory-grid-body { grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr)); }
-      #inventory-grid-view, #inventory-list-view { min-height:0; }
-      #inventory-list-view table { min-width:650px; }
+      #inventory-grid-view, #inventory-list-view { min-height:0; min-width:0; max-width:100%; }
+      #inventory-list-view { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+      #inventory-list-view table { width:100%; min-width:0; table-layout:auto; }
+      #inventory-list-view th, #inventory-list-view td { white-space:normal; }
+      #inventory-list-view td:last-child > div { justify-content:flex-end; }
+      @media (max-width:760px) {
+        #inventory-list-view { overflow-x:hidden; padding:.65rem; }
+        #inventory-list-view table,
+        #inventory-list-view tbody { display:block; width:100%; }
+        #inventory-list-view thead { display:none; }
+        #inventory-list-view tbody { display:grid; gap:.65rem; }
+        #inventory-list-view tbody tr {
+          display:grid;
+          grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+          gap:.55rem .85rem;
+          width:100%;
+          padding:.8rem;
+          border:1px solid #e2e8f0;
+          border-radius:1rem;
+          background:#fff;
+        }
+        #inventory-list-view tbody td {
+          display:flex;
+          align-items:center;
+          justify-content:space-between;
+          gap:.5rem;
+          min-width:0;
+          padding:.25rem 0;
+          border:0;
+          text-align:left;
+          font-size:12px;
+        }
+        #inventory-list-view tbody td:first-child,
+        #inventory-list-view tbody td:last-child { grid-column:1 / -1; }
+        #inventory-list-view tbody td:first-child { padding-bottom:.65rem; border-bottom:1px solid #e2e8f0; }
+        #inventory-list-view tbody td:nth-child(2)::before { content:"Category"; color:#64748b; font-size:10px; }
+        #inventory-list-view tbody td:nth-child(3)::before { content:"Cost"; color:#64748b; font-size:10px; }
+        #inventory-list-view tbody td:nth-child(4)::before { content:"Price"; color:#64748b; font-size:10px; }
+        #inventory-list-view tbody td:nth-child(5)::before { content:"Stock"; color:#64748b; font-size:10px; }
+        #inventory-list-view tbody td:last-child { padding-top:.6rem; border-top:1px solid #e2e8f0; }
+        #inventory-list-view tbody td:last-child > div { justify-content:flex-start; width:100%; }
+        #inventory-list-view tbody td:first-child img,
+        #inventory-list-view tbody td:first-child > div > div:first-child { width:2.75rem; height:2.75rem; }
+      }
       @media (max-width:600px) {
         #inventory-grid-body { grid-template-columns:repeat(2,minmax(0,1fr)); }
         #inventory-grid-view { padding:.65rem; }
         #inventory-grid-body article { padding:.6rem; }
         #inventory-grid-body article > div:first-child { height:8rem; }
       }
-      @media (max-width:360px) {
+      @media (max-width:380px) {
         #inventory-grid-body { grid-template-columns:minmax(0,1fr); }
+        #inventory-list-view tbody tr { padding:.65rem; gap:.45rem .6rem; }
+        #inventory-list-view tbody td { font-size:11px; }
+        #inventory-list-view tbody td:last-child > div { gap:.35rem; }
       }
     </style>
     <style id="styve-universal-responsive-layout">
