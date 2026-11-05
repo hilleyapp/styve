@@ -1768,5 +1768,82 @@
             renderInbox();
         });
     </script>
+    <style id="styve-emergency-layout-fix">
+      html, body { min-height:100% !important; height:auto !important; overflow-x:hidden !important; overflow-y:auto !important; }
+      body { min-height:100vh !important; min-height:100dvh !important; overflow:visible !important; }
+      body:has(#tab-inventory:not(.hidden)), body:has(#tab-orders:not(.hidden)) { height:auto !important; min-height:100vh !important; min-height:100dvh !important; overflow:visible !important; }
+      body > .flex-1.flex.flex-col { height:auto !important; min-height:100vh !important; min-height:100dvh !important; overflow:visible !important; }
+      body > .flex-1.flex.flex-col > main { height:auto !important; min-height:0 !important; overflow:visible !important; flex:1 0 auto !important; }
+      #tab-inventory:not(.hidden), #tab-orders:not(.hidden) { height:auto !important; min-height:0 !important; overflow:visible !important; display:block !important; }
+      #tab-inventory:not(.hidden) > :last-child, #tab-orders:not(.hidden) > :last-child { display:block !important; height:auto !important; overflow:visible !important; }
+      #tab-inventory:not(.hidden) > :last-child > div, #tab-orders:not(.hidden) > :last-child > div { overflow-x:auto !important; overflow-y:visible !important; }
+      .tab-content.hidden { display:none !important; }
+      .tab-content:not(.hidden) { display:block !important; }
+      @media (min-width:1024px) { #sidebar { position:sticky !important; top:0; height:100vh; transform:none !important; } }
+      @media (max-width:1023px) { #sidebar { z-index:60 !important; } #sidebar-backdrop { z-index:55 !important; } }
+    </style>
+    <script>
+      // Independent navigation fallback. This remains available even if the main app script has an error.
+      (function () {
+        const names = {
+          dashboard: 'Dashboard Overview',
+          inventory: 'Stock & Inventory',
+          orders: 'Sales & Orders',
+          inbox: 'Instagram Order Inbox',
+          analytics: 'Analytics & Profit'
+        };
+        function closeMenu() {
+          document.getElementById('sidebar')?.classList.add('-translate-x-full');
+          document.getElementById('sidebar-backdrop')?.classList.add('hidden');
+        }
+        function showTab(id) {
+          if (!Object.prototype.hasOwnProperty.call(names, id)) return;
+          document.querySelectorAll('.tab-content').forEach(function (el) { el.classList.add('hidden'); });
+          document.querySelectorAll('.nav-item').forEach(function (el) {
+            el.classList.remove('bg-slate-800', 'text-white', 'active');
+            el.setAttribute('aria-current', 'false');
+          });
+          const panel = document.getElementById('tab-' + id);
+          const nav = document.getElementById('nav-' + id);
+          if (!panel || !nav) return;
+          panel.classList.remove('hidden');
+          nav.classList.add('bg-slate-800', 'text-white', 'active');
+          nav.setAttribute('aria-current', 'page');
+          const title = document.getElementById('page-title');
+          if (title) title.textContent = names[id];
+          try {
+            if (id === 'dashboard' && typeof window.renderDashboard === 'function') window.renderDashboard();
+            if (id === 'inventory' && typeof window.renderInventory === 'function') window.renderInventory();
+            if (id === 'orders' && typeof window.renderOrders === 'function') window.renderOrders();
+            if (id === 'inbox' && typeof window.renderInbox === 'function') window.renderInbox();
+            if (id === 'analytics' && typeof window.renderAnalytics === 'function') window.renderAnalytics();
+          } catch (err) { console.error('Styve tab render error:', err); }
+          closeMenu();
+          window.scrollTo(0, 0);
+        }
+        document.addEventListener('click', function (event) {
+          const nav = event.target.closest && event.target.closest('.nav-item[id^="nav-"]');
+          if (nav) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            showTab(nav.id.slice(4));
+            return;
+          }
+          if (event.target.closest && event.target.closest('#open-mobile-menu')) {
+            event.preventDefault();
+            document.getElementById('sidebar')?.classList.remove('-translate-x-full');
+            document.getElementById('sidebar-backdrop')?.classList.remove('hidden');
+            return;
+          }
+          if ((event.target.closest && event.target.closest('#close-mobile-menu')) || event.target.id === 'sidebar-backdrop') {
+            closeMenu();
+          }
+        }, true);
+        window.addEventListener('DOMContentLoaded', function () {
+          const active = document.querySelector('.tab-content:not(.hidden)');
+          showTab(active ? active.id.replace('tab-', '') : 'dashboard');
+        });
+      })();
+    </script>
 </body>
 </html>
