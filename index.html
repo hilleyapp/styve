@@ -342,6 +342,20 @@
     </style>
 
 
+    <style id="styve-inventory-view-layout">
+      #inventory-grid-body { grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr)); }
+      #inventory-grid-view, #inventory-list-view { min-height:0; }
+      #inventory-list-view table { min-width:650px; }
+      @media (max-width:600px) {
+        #inventory-grid-body { grid-template-columns:repeat(2,minmax(0,1fr)); }
+        #inventory-grid-view { padding:.65rem; }
+        #inventory-grid-body article { padding:.6rem; }
+        #inventory-grid-body article > div:first-child { height:8rem; }
+      }
+      @media (max-width:360px) {
+        #inventory-grid-body { grid-template-columns:minmax(0,1fr); }
+      }
+    </style>
     <style id="styve-universal-responsive-layout">
       *, *::before, *::after { box-sizing: border-box; }
       html, body { width:100%; max-width:100%; overflow-x:hidden !important; }
@@ -527,10 +541,19 @@
                         <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500"></i>
                         <input type="text" id="inventory-search" placeholder="Search by SKU or Product Name..." onkeyup="renderInventory()" class="w-full pl-10 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-pink-500">
                     </div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                    <div class="flex items-center rounded-xl border border-slate-200 bg-white p-1 shadow-sm" role="group" aria-label="Product view">
+                        <button id="inventory-grid-toggle" type="button" onclick="setInventoryView('grid')" class="px-3 py-2 rounded-lg text-xs font-semibold transition"><i class="fa-solid fa-grip mr-1.5"></i>Grid</button>
+                        <button id="inventory-list-toggle" type="button" onclick="setInventoryView('list')" class="px-3 py-2 rounded-lg text-xs font-semibold transition"><i class="fa-solid fa-list mr-1.5"></i>List</button>
+                    </div>
                     <button onclick="openAddProductModal()" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-md"><i class="fa-solid fa-plus"></i> Add Product</button>
                 </div>
-                <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-sm">
-                    <div class="overflow-x-auto">
+                </div>
+                <div id="inventory-products-panel" class="bg-slate-900 rounded-2xl border border-slate-200 overflow-hidden shadow-sm min-h-0">
+                    <div id="inventory-grid-view" class="h-full overflow-y-auto p-4">
+                        <div id="inventory-grid-body" class="grid gap-4"></div>
+                    </div>
+                    <div id="inventory-list-view" class="h-full overflow-auto hidden">
                         <table class="w-full text-left text-sm">
                             <thead class="bg-slate-800/80 text-slate-400 text-[11px] uppercase font-semibold">
                                 <tr><th class="p-4">SKU & Item</th><th class="p-4">Category</th><th class="p-4">Cost</th><th class="p-4">Price</th><th class="p-4 text-center">Stock</th><th class="p-4 text-right">Actions</th></tr>
@@ -1225,26 +1248,80 @@
             toast("Added +5 units to stock");
         }
 
+        function getInventoryView() {
+            try { return localStorage.getItem('styve-inventory-view') === 'list' ? 'list' : 'grid'; }
+            catch (error) { return 'grid'; }
+        }
+
+        function setInventoryView(view) {
+            const selected = view === 'list' ? 'list' : 'grid';
+            try { localStorage.setItem('styve-inventory-view', selected); } catch (error) {}
+            renderInventory();
+        }
+
         function renderInventory() {
-            const search = (document.getElementById('inventory-search').value || '').toLowerCase();
+            const search = (document.getElementById('inventory-search')?.value || '').trim().toLowerCase();
             const tbody = document.getElementById('inventory-table-body');
-            const filtered = products.filter(p => p.name.toLowerCase().includes(search) || p.sku.toLowerCase().includes(search));
+            const grid = document.getElementById('inventory-grid-body');
+            const view = getInventoryView();
+            const filtered = products.filter(p =>
+                String(p.name || '').toLowerCase().includes(search) ||
+                String(p.sku || '').toLowerCase().includes(search)
+            );
+            const esc = value => escapeBusinessText(value);
+            const imageMarkup = (p, sizeClass) => p.image
+                ? `<img src="${esc(p.image)}" alt="${esc(p.name || 'Product')}" class="${sizeClass} object-contain rounded-xl bg-white p-2" onerror="this.style.display='none'">`
+                : `<div class="${sizeClass} rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center"><i class="fa-solid fa-image text-2xl"></i></div>`;
+            const stockMarkup = p => `<span class="inline-flex px-2.5 py-1 rounded-full text-xs font-bold ${Number(p.stock || 0) <= 5 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}">${Number(p.stock || 0)} units</span>`;
+            const actionsMarkup = p => `<div class="flex items-center gap-2 flex-wrap">
+                <button onclick="adjustStock(${Number(p.id)}, -1)" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold" title="Remove one unit">−</button>
+                <button onclick="adjustStock(${Number(p.id)}, 1)" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold" title="Add one unit">+</button>
+                <button onclick="editProduct(${Number(p.id)})" class="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold"><i class="fa-solid fa-pen-to-square mr-1"></i>Edit</button>
+                <button onclick="deleteProduct(${Number(p.id)})" class="px-2 py-1.5 text-rose-500 hover:text-rose-700 text-xs" title="Delete product"><i class="fa-solid fa-trash"></i></button>
+            </div>`;
 
             tbody.innerHTML = filtered.map(p => `
-                <tr class="hover:bg-slate-800/40 transition">
-                    <td class="p-4"><div class="flex items-center gap-3">${p.image ? `<img src="${String(p.image).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')}" alt="" class="w-10 h-10 rounded-lg object-contain bg-white p-1 shrink-0" onerror="this.style.display='none'">` : `<div class="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center text-slate-500 shrink-0"><i class="fa-solid fa-image"></i></div>`}<div><div class="font-bold text-white">${p.name}</div><div class="text-xs text-slate-400 font-mono">${p.sku}</div></div></div></td>
-                    <td class="p-4"><span class="px-2 py-1 bg-slate-800 text-slate-300 rounded-lg text-xs">${p.category}</span></td>
-                    <td class="p-4 text-slate-300">MVR ${p.cost.toFixed(2)}</td>
-                    <td class="p-4 font-bold text-white">MVR ${p.price.toFixed(2)}</td>
-                    <td class="p-4 text-center"><span class="px-2 py-1 rounded-full text-xs font-bold ${p.stock <= 5 ? 'bg-amber-500/20 text-amber-400' : 'bg-emerald-500/20 text-emerald-400'}">${p.stock} units</span></td>
-                    <td class="p-4 text-right space-x-2">
-                        <button onclick="adjustStock(${p.id}, -1)" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-xs font-bold transition" title="Remove one unit">−</button>
-                        <button onclick="adjustStock(${p.id}, 1)" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-xs font-bold transition" title="Add one unit">+</button>
-                        <button onclick="editProduct(${p.id})" class="px-2.5 py-1.5 bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 rounded-lg text-xs font-semibold transition"><i class="fa-solid fa-pen-to-square mr-1"></i>Edit</button>
-                        <button onclick="deleteProduct(${p.id})" class="text-rose-400 hover:text-rose-300 text-xs transition" title="Delete product"><i class="fa-solid fa-trash"></i></button>
-                    </td>
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="p-4"><div class="flex items-center gap-3">${imageMarkup(p, 'w-12 h-12 shrink-0')}<div class="min-w-0"><div class="font-bold text-slate-800">${esc(p.name)}</div><div class="text-xs text-slate-500 font-mono">${esc(p.sku)}</div></div></div></td>
+                    <td class="p-4"><span class="px-2 py-1 bg-slate-100 text-slate-600 rounded-lg text-xs">${esc(p.category)}</span></td>
+                    <td class="p-4 text-slate-600">MVR ${Number(p.cost || 0).toFixed(2)}</td>
+                    <td class="p-4 font-bold text-slate-800">MVR ${Number(p.price || 0).toFixed(2)}</td>
+                    <td class="p-4 text-center">${stockMarkup(p)}</td>
+                    <td class="p-4 text-right">${actionsMarkup(p)}</td>
                 </tr>
             `).join('') || `<tr><td colspan="6" class="p-8 text-center text-slate-500">No products found.</td></tr>`;
+
+            grid.innerHTML = filtered.map(p => `
+                <article class="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm flex flex-col min-w-0">
+                    <div class="h-40 sm:h-44 rounded-xl bg-slate-50 flex items-center justify-center overflow-hidden mb-3">${imageMarkup(p, 'w-full h-full')}</div>
+                    <div class="min-w-0 flex-1">
+                        <div class="font-bold text-slate-800 leading-snug break-words">${esc(p.name)}</div>
+                        <div class="text-xs text-slate-500 font-mono mt-1">${esc(p.sku)}</div>
+                        <div class="mt-2"><span class="px-2 py-1 bg-slate-100 text-slate-600 rounded-lg text-[11px]">${esc(p.category)}</span></div>
+                    </div>
+                    <div class="flex items-center justify-between gap-2 mt-3 pt-3 border-t border-slate-100">
+                        <div><div class="text-[10px] text-slate-500">Selling price</div><div class="font-extrabold text-slate-800">MVR ${Number(p.price || 0).toFixed(2)}</div></div>
+                        ${stockMarkup(p)}
+                    </div>
+                    <div class="text-xs text-slate-500 mt-2">Cost: MVR ${Number(p.cost || 0).toFixed(2)}</div>
+                    <div class="mt-3">${actionsMarkup(p)}</div>
+                </article>
+            `).join('') || '<div class="col-span-full p-8 text-center text-slate-500">No products found.</div>';
+
+            document.getElementById('inventory-grid-view')?.classList.toggle('hidden', view !== 'grid');
+            document.getElementById('inventory-list-view')?.classList.toggle('hidden', view !== 'list');
+            const gridButton = document.getElementById('inventory-grid-toggle');
+            const listButton = document.getElementById('inventory-list-toggle');
+            [gridButton, listButton].forEach(button => {
+                if (!button) return;
+                button.classList.remove('bg-pink-600', 'text-white', 'shadow-sm', 'text-slate-600');
+                button.classList.add('text-slate-600');
+            });
+            const activeButton = view === 'list' ? listButton : gridButton;
+            if (activeButton) {
+                activeButton.classList.remove('text-slate-600');
+                activeButton.classList.add('bg-pink-600', 'text-white', 'shadow-sm');
+            }
         }
 
         function adjustStock(id, qty) {
