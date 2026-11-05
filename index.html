@@ -735,7 +735,7 @@
 
         const SUPABASE_URL = 'https://ncauwqggeoicyetunpop.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_TSOr4yScy1e2yONR3KyuCQ_0HZ1b6ox';
-        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const supabaseClient = window.supabase?.createClient ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
         let cloudUser = null, cloudReady = false, cloudSaveTimer = null, cloudChannel = null, cloudSavePending = false;
         function cloudSnapshot() { return { products, orders, chats, expenses, schemaVersion: 1, updatedAt: new Date().toISOString() }; }
         function setCloudSyncIndicator(state) {
