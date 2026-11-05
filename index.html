@@ -1213,22 +1213,22 @@
 
         function buildDeliveryWhatsAppMessage(order) {
             const itemLines = (order.items || []).map(item =>
-                \`• \${item.name || 'Product'} × \${Number(item.qty || 0)} — MVR \${(Number(item.price || 0) * Number(item.qty || 0)).toFixed(2)}\`
+                `• ${item.name || 'Product'} × ${Number(item.qty || 0)} — MVR ${(Number(item.price || 0) * Number(item.qty || 0)).toFixed(2)}`
             );
             return [
                 '🚚 *STYVE — NEW DELIVERY ORDER*',
                 '',
-                \`Order: \${order.id || '—'}\`,
-                \`Date: \${order.date || '—'}\`,
-                \`Customer: \${order.igHandle || '—'}\`,
-                \`Phone: \${order.phone || '—'}\`,
-                \`Delivery address: \${order.address || '—'}\`,
+                `Order: ${order.id || '—'}`,
+                `Date: ${order.date || '—'}`,
+                `Customer: ${order.igHandle || '—'}`,
+                `Phone: ${order.phone || '—'}`,
+                `Delivery address: ${order.address || '—'}`,
                 '',
                 '*Items:*',
                 ...(itemLines.length ? itemLines : ['• No items recorded']),
                 '',
-                \`*TOTAL: MVR \${Number(order.total || 0).toFixed(2)}*\`,
-                \`Payment: \${order.payment || '—'}\`,
+                `*TOTAL: MVR ${Number(order.total || 0).toFixed(2)}*`,
+                `Payment: ${order.payment || '—'}`,
                 '',
                 'Please arrange delivery and update the team.'
             ].join('\n');
