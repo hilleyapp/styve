@@ -504,7 +504,7 @@
                 <div class="flex gap-4 justify-between bg-slate-900 p-4 rounded-2xl border border-slate-800 items-center flex-wrap shadow-sm">
                     <div class="relative flex-1 min-w-[240px]">
                         <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500"></i>
-                        <input type="text" id="order-search" placeholder="Search orders..." onkeyup="renderOrders()" class="w-full pl-10 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-indigo-500">
+                        <input type="text" id="order-search" placeholder="Search by order ID, customer name, phone or Instagram..." oninput="renderOrders()" class="w-full pl-10 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-indigo-500">
                     </div>
                     <button onclick="openNewOrderModal()" class="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-md"><i class="fa-solid fa-cart-plus"></i> Log Order</button>
                 </div>
@@ -683,6 +683,7 @@
                 <button onclick="closeOrderModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
             <form id="order-form" onsubmit="saveOrder(event)" class="space-y-4 text-sm">
+                <div><label class="block text-slate-400 mb-1 text-xs font-semibold">Customer Name</label><input type="text" id="order-customer-name" placeholder="Enter customer name (optional)" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500"></div>
                 <div class="grid grid-cols-2 gap-3">
                     <div><label class="block text-slate-400 mb-1 text-xs font-semibold">Instagram Handle</label><input type="text" id="order-ig" required placeholder="@username" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500"></div>
                     <div><label class="block text-slate-400 mb-1 text-xs font-semibold">Phone Number</label><input type="text" id="order-phone" required placeholder="777XXXX" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500"></div>
@@ -1210,14 +1211,25 @@
         }
 
         function renderOrders() {
-            const search = (document.getElementById('order-search').value || '').toLowerCase();
+            const search = (document.getElementById('order-search').value || '').trim().toLowerCase();
+            const phoneSearch = search.replace(/\\D/g, '');
             const tbody = document.getElementById('orders-table-body');
-            const filtered = orders.filter(o => o.id.toLowerCase().includes(search) || o.igHandle.toLowerCase().includes(search));
+            const filtered = orders.filter(o => {
+                const orderId = String(o.id || '').toLowerCase();
+                const customerName = String(o.customerName || o.customer || o.name || '').toLowerCase();
+                const instagram = String(o.igHandle || '').toLowerCase();
+                const phone = String(o.phone || '');
+                const phoneDigits = phone.replace(/\\D/g, '');
+                return orderId.includes(search) ||
+                    customerName.includes(search) ||
+                    instagram.includes(search) ||
+                    (phoneSearch.length > 0 && phoneDigits.includes(phoneSearch));
+            });
 
             tbody.innerHTML = filtered.map(o => `
                 <tr class="hover:bg-slate-800/40 transition">
                     <td class="p-4 font-mono font-bold text-white">${o.id}<div class="text-xs text-slate-400 font-normal">${o.date}</div></td>
-                    <td class="p-4"><div class="font-bold text-pink-400">${o.igHandle}</div><div class="text-xs text-slate-400">${o.address}</div></td>
+                    <td class="p-4">${o.customerName ? `<div class="font-semibold text-white">${o.customerName}</div>` : ''}<div class="font-bold text-pink-400">${o.igHandle}</div><div class="text-xs text-slate-400">${o.phone || ''}</div><div class="text-xs text-slate-400">${o.address}</div></td>
                     <td class="p-4 text-xs text-slate-300">${(o.items || []).map(i => `• ${i.name} (x${i.qty})`).join('<br>')}</td>
                     <td class="p-4 font-bold text-white">MVR ${o.total.toFixed(2)}</td>
                     <td class="p-4"><select onchange="updateOrderStatus('${o.id}', this.value)" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs font-semibold focus:outline-none"><option ${o.status==='Pending'?'selected':''}>Pending</option><option ${o.status==='Paid'?'selected':''}>Paid</option><option ${o.status==='Packed'?'selected':''}>Packed</option><option ${o.status==='Shipped'?'selected':''}>Shipped</option><option ${o.status==='Sold'?'selected':''}>Sold</option><option ${o.status==='Cancelled'?'selected':''}>Cancelled</option></select></td>
@@ -1388,6 +1400,7 @@
             const newOrder = {
                 id: `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
                 date: new Date().toISOString().split('T')[0],
+                customerName: document.getElementById('order-customer-name').value.trim(),
                 igHandle: document.getElementById('order-ig').value,
                 phone: document.getElementById('order-phone').value,
                 address: document.getElementById('order-address').value,
