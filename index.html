@@ -723,9 +723,9 @@
 
         const initialChats = [];
 
-        const SUPABASE_URL = 'https://ncauwqggeoicyetunpop.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_TSOr4yScy1e2yONR3KyuCQ_0HZ1b6ox';
-        const supabaseClient = window.supabase?.createClient ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+        // Temporary no-login mode: Styve uses browser localStorage only.
+        // Supabase authentication and cloud writes remain disabled until owner login is re-enabled.
+        const supabaseClient = null;
         let cloudUser = null, cloudReady = false, cloudSaveTimer = null, cloudChannel = null, cloudSavePending = false;
         function cloudSnapshot() { return { products, orders, chats, expenses, schemaVersion: 1, updatedAt: new Date().toISOString() }; }
         function setCloudSyncIndicator(state) {
@@ -928,7 +928,7 @@
                 localStorage.setItem('ig_chats', JSON.stringify(chats));
                 localStorage.setItem('ig_expenses', JSON.stringify(expenses));
                 updateBadges();
-                scheduleCloudSave();
+                setCloudSyncIndicator('local');
             } catch (e) { console.error("Storage error", e); }
         }
 
