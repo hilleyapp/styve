@@ -35,10 +35,9 @@
         ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.2); border-radius: 9999px; }
         .ig-bg-gradient { background: linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045); }
         
-        html, body { min-height: 100%; height: auto !important; overflow-x: hidden !important; overflow-y: auto !important; }
-        body { display: flex; flex-direction: row; min-height: 100vh; }
-        body > .flex-1.flex.flex-col { min-height: 100vh; }
-        main { flex: 1 1 auto; min-height: 0; overflow: visible !important; -webkit-overflow-scrolling: touch; }
+        html, body { height: 100%; overflow: auto !important; }
+        body { display: flex; flex-direction: row; }
+        main { overflow-y: auto !important; -webkit-overflow-scrolling: touch; }
 
         @keyframes toastIn { from {opacity:0; transform:translateY(12px)} to {opacity:1; transform:none} }
         .toast { animation: toastIn .2s ease-out; }
@@ -580,7 +579,7 @@
         </div>
     </div>
 
-    <div id="cloud-auth-gate" class="hidden fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-4">
+    <div id="cloud-auth-gate" class="fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-4">
         <div class="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
             <div class="flex items-center gap-3 mb-5"><img src="./assets/styve-logo.svg" alt="Styve" class="w-12 h-12 rounded-xl"><div><h1 class="text-xl font-extrabold text-white">Styve Cloud</h1><p class="text-xs text-slate-400">Sign in to sync your shop across devices</p></div></div>
             <form id="cloud-auth-form" class="space-y-3">
@@ -805,9 +804,20 @@
             const { data, error } = await supabaseClient.from('styve_app_state').select('data').eq('owner_id', cloudUser.id).maybeSingle();
             if (error) { cloudUser = null; setCloudSyncIndicator('offline'); setCloudStatus('Database setup needed: ' + error.message, true); return; }
             gate.classList.add('hidden');
-            if (data?.data) { cloudReady = false; await applyCloudState(data.data); cloudReady = true; }
-            else { cloudReady = true; await writeCloudState(); }
-            listenForCloudChanges(); refreshAll(); renderInbox(); setCloudSyncIndicator(navigator.onLine ? 'connected' : 'offline'); toast('Styve connected. Cloud sync is active.');
+            if (data?.data) {
+                cloudReady = false;
+                await applyCloudState(data.data);
+                cloudReady = true;
+            } else {
+                // Never create an empty/default cloud record automatically: protect existing shop data.
+                cloudReady = false;
+                setCloudStatus('No saved Styve cloud record was found for this account. Existing database data has not been overwritten.', true);
+            }
+            listenForCloudChanges();
+            refreshAll();
+            renderInbox();
+            setCloudSyncIndicator(navigator.onLine ? 'connected' : 'offline');
+            if (data?.data) toast('Styve connected. Your cloud data is loaded.');
         }
         window.addEventListener('offline', () => setCloudSyncIndicator('offline'));
         window.addEventListener('online', () => {
@@ -1739,21 +1749,11 @@
             document.getElementById('sidebar-backdrop').classList.add('hidden');
         });
 
-        // TEMPORARY LOCAL MODE: bypass cloud authentication without disabling dashboard features.
-        function bootStyveLocalMode() {
-            document.getElementById('cloud-auth-gate')?.classList.add('hidden');
-            document.getElementById('cloud-sync-indicator')?.classList.add('hidden');
-            document.body.style.minHeight = '100vh';
-            document.body.style.overflowY = 'auto';
-            try { refreshAll(); } catch (error) { console.error('Styve dashboard render error:', error); }
-            try { renderInbox(); } catch (error) { console.error('Styve inbox render error:', error); }
-        }
-        window.switchTab = switchTab;
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', bootStyveLocalMode, { once: true });
-        } else {
-            bootStyveLocalMode();
-        }
+        // Restore authenticated cloud startup. Existing Supabase records are loaded after sign-in.
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('cloud-auth-gate')?.classList.remove('hidden');
+            initCloudApp();
+        });
     </script>
 </body>
 </html>
