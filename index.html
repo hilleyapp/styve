@@ -579,7 +579,7 @@
         </div>
     </div>
 
-    <div id="cloud-auth-gate" class="fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-4">
+    <div id="cloud-auth-gate" class="hidden fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-4">
         <div class="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
             <div class="flex items-center gap-3 mb-5"><img src="./assets/styve-logo.svg" alt="Styve" class="w-12 h-12 rounded-xl"><div><h1 class="text-xl font-extrabold text-white">Styve Cloud</h1><p class="text-xs text-slate-400">Sign in to sync your shop across devices</p></div></div>
             <form id="cloud-auth-form" class="space-y-3">
@@ -703,35 +703,11 @@
 
     <script>
         // --- INITIAL STATE & LOCAL STORAGE PERSISTENCE ---
-        const initialProducts = [
-            { id: 101, sku: 'SKIN-GLOW-01', name: 'Hydrating Glow Serum 30ml', category: 'Adults', stock: 18, cost: 140.00, price: 320.00 },
-            { id: 102, sku: 'SKIN-CLEAN-02', name: 'Gentle Foaming Cleanser 150ml', category: 'Skincare', stock: 4, cost: 95.00, price: 240.00 },
-            { id: 103, sku: 'BABY-BALM-01', name: 'Organic Baby Diaper Balm 100g', category: 'Baby', stock: 2, cost: 80.00, price: 195.00 }
-        ];
+        const initialProducts = [];
 
-        const initialOrders = [
-            {
-                id: 'ORD-1001',
-                date: '2026-11-02',
-                igHandle: '@aishath_skincare',
-                phone: '7789123',
-                address: 'H. Sunbeam 4th Floor, Malé',
-                items: [{ productId: 101, name: 'Hydrating Glow Serum 30ml', qty: 1, price: 320.00 }],
-                total: 320.00,
-                status: 'Shipped',
-                payment: 'BML Transfer'
-            }
-        ];
+        const initialOrders = [];
 
-        const initialChats = [
-            {
-                id: 'chat-1',
-                handle: '@mariyam_nook',
-                avatarText: 'MN',
-                messages: [{ sender: 'them', text: 'Hello! Is the Balm in stock?' }],
-                prefillCart: [103]
-            }
-        ];
+        const initialChats = [];
 
         const SUPABASE_URL = 'https://ncauwqggeoicyetunpop.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_TSOr4yScy1e2yONR3KyuCQ_0HZ1b6ox';
@@ -744,6 +720,7 @@
             const wrap = document.getElementById('cloud-sync-indicator');
             if (!dot || !label || !wrap) return;
             const styles = {
+                local: ['bg-emerald-400', 'text-emerald-300', 'border-emerald-500/30', 'Saved locally'],
                 connected: ['bg-emerald-400', 'text-emerald-300', 'border-emerald-500/30', 'Connected'],
                 syncing: ['bg-sky-400 animate-pulse', 'text-sky-300', 'border-sky-500/30', 'Syncing'],
                 offline: ['bg-rose-400', 'text-rose-300', 'border-rose-500/30', 'Offline'],
@@ -753,7 +730,7 @@
             dot.className = 'h-2 w-2 rounded-full ' + s[0];
             label.textContent = s[3];
             wrap.className = 'flex items-center gap-1.5 rounded-full border bg-slate-800/80 px-2.5 py-2 text-[11px] font-semibold whitespace-nowrap ' + s[1] + ' ' + s[2];
-            wrap.title = state === 'offline' ? 'No internet connection. Changes are saved on this device and will retry when online.' : state === 'syncing' ? 'Saving changes to Styve cloud.' : state === 'connected' ? 'Styve cloud is connected.' : 'Connecting to Styve cloud.';
+            wrap.title = state === 'local' ? 'Your changes are saved in this browser on this device. Cloud sync is not enabled yet.' : state === 'offline' ? 'No internet connection. Changes remain saved on this device.' : state === 'syncing' ? 'Saving changes to Styve cloud.' : state === 'connected' ? 'Styve cloud is connected.' : 'Connecting to Styve cloud.';
         }
         function setCloudStatus(message, isError = false) {
             const el = document.getElementById('cloud-auth-status');
@@ -819,10 +796,10 @@
             setCloudSyncIndicator(navigator.onLine ? 'connected' : 'offline');
             if (data?.data) toast('Styve connected. Your cloud data is loaded.');
         }
-        window.addEventListener('offline', () => setCloudSyncIndicator('offline'));
+        window.addEventListener('offline', () => setCloudSyncIndicator('local'));
         window.addEventListener('online', () => {
             if (cloudUser) { setCloudSyncIndicator('syncing'); writeCloudState(); }
-            else setCloudSyncIndicator('connecting');
+            else setCloudSyncIndicator('local');
         });
         function isCloudPasswordRecoveryUrl() {
             const query = new URLSearchParams(window.location.search);
@@ -1749,10 +1726,13 @@
             document.getElementById('sidebar-backdrop').classList.add('hidden');
         });
 
-        // Restore authenticated cloud startup. Existing Supabase records are loaded after sign-in.
+        // Fresh local-first startup: no login gate and no automatic writes to Supabase.
+        // Existing browser data is retained; new installations start with empty business records.
         document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('cloud-auth-gate')?.classList.remove('hidden');
-            initCloudApp();
+            document.getElementById('cloud-auth-gate')?.classList.add('hidden');
+            setCloudSyncIndicator('local');
+            refreshAll();
+            renderInbox();
         });
     </script>
 </body>
