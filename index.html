@@ -729,6 +729,23 @@
         let cloudToken = localStorage.getItem('styve_access_token') || '';
         let cloudUser = null, cloudReady = false, cloudSaveTimer = null, cloudChannel = null, cloudSavePending = false;
         let cloudUpdatedAt = null, cloudPollingTimer = null, cloudApplyingRemote = false;
+        function setCloudSyncIndicator(status) {
+            const label = document.getElementById('cloud-sync-label');
+            const dot = document.getElementById('cloud-sync-dot');
+            const indicator = document.getElementById('cloud-sync-indicator');
+            if (!label || !dot || !indicator) return;
+            const states = {
+                connecting: ['Connecting', 'bg-slate-500'],
+                syncing: ['Syncing', 'bg-amber-400'],
+                connected: ['Synced', 'bg-emerald-400'],
+                offline: ['Offline', 'bg-rose-400']
+            };
+            const state = states[status] || states.connecting;
+            label.textContent = state[0];
+            dot.className = 'h-2 w-2 rounded-full ' + state[1];
+            indicator.title = 'Styve cloud sync status: ' + state[0];
+        }
+
         function cloudSnapshot() { return { products, orders, chats, expenses, schemaVersion: 1, updatedAt: new Date().toISOString() }; }
         async function styveCloudRequest(action, data) {
             const response = await fetch(STYVE_SYNC_URL, {
