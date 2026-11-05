@@ -1738,9 +1738,13 @@
             document.getElementById('sidebar-backdrop').classList.add('hidden');
         });
 
+        // TEMPORARY: run Styve without the Cloud login gate while authentication is being repaired.
+        // Data continues to save in this browser's local storage; cloud sync is paused.
         document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('cloud-auth-gate').classList.remove('hidden');
-            initCloudApp();
+            document.getElementById('cloud-auth-gate')?.classList.add('hidden');
+            document.getElementById('cloud-sync-indicator')?.classList.add('hidden');
+            refreshAll();
+            renderInbox();
         });
     </script>
 </body>
