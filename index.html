@@ -326,6 +326,20 @@
         }
       }
     </style>
+    <style id="styve-navigation-scroll-fix">
+      html, body { width:100%; min-height:100%; }
+      body { height:100vh; height:100dvh; min-height:0 !important; overflow:hidden !important; }
+      body > .flex-1.flex.flex-col { height:100vh; height:100dvh; min-height:0 !important; min-width:0; overflow:hidden !important; }
+      body > .flex-1.flex.flex-col > main { flex:1 1 auto; min-height:0 !important; min-width:0; overflow-y:auto !important; overflow-x:hidden !important; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; }
+      .tab-content[style*="display: block"] { min-height:max-content; }
+      #tab-inventory[style*="display: block"], #tab-orders[style*="display: block"] { height:auto !important; min-height:max-content !important; overflow:visible !important; display:block !important; }
+      #tab-inventory[style*="display: block"] > :last-child, #tab-orders[style*="display: block"] > :last-child { display:block !important; min-height:0 !important; }
+      #tab-inventory[style*="display: block"] > :last-child > div, #tab-orders[style*="display: block"] > :last-child > div { overflow-x:auto !important; overflow-y:visible !important; min-height:0 !important; }
+      @media (max-width:1023px) {
+        #sidebar { z-index:60 !important; }
+        #sidebar-backdrop { z-index:55 !important; }
+      }
+    </style>
 
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-full">
@@ -968,16 +982,35 @@
         }
 
         function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('bg-slate-800', 'text-white'));
-            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
-            document.getElementById(`nav-${tabId}`).classList.add('bg-slate-800', 'text-white');
+            const allowedTabs = ['dashboard', 'inventory', 'orders', 'inbox', 'analytics'];
+            if (!allowedTabs.includes(tabId)) return;
+            document.querySelectorAll('.tab-content').forEach(el => {
+                el.classList.add('hidden');
+                el.style.display = 'none';
+            });
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.classList.remove('bg-slate-800', 'text-white', 'active');
+                el.setAttribute('aria-current', 'false');
+            });
+            const panel = document.getElementById('tab-' + tabId);
+            const nav = document.getElementById('nav-' + tabId);
+            if (!panel || !nav) return;
+            panel.classList.remove('hidden');
+            panel.style.display = 'block';
+            nav.classList.add('bg-slate-800', 'text-white', 'active');
+            nav.setAttribute('aria-current', 'page');
+            const title = document.getElementById('page-title');
+            if (title) title.textContent = ({dashboard:'Dashboard Overview',inventory:'Stock & Inventory',orders:'Sales & Orders',inbox:'Instagram Order Inbox',analytics:'Analytics & Profit'})[tabId];
             if (tabId === 'dashboard') renderDashboard();
             if (tabId === 'inventory') renderInventory();
             if (tabId === 'orders') renderOrders();
             if (tabId === 'inbox') renderInbox();
             if (tabId === 'analytics') renderAnalytics();
+            document.querySelector('main')?.scrollTo({top:0,behavior:'auto'});
+            document.getElementById('sidebar')?.classList.add('-translate-x-full');
+            document.getElementById('sidebar-backdrop')?.classList.add('hidden');
         }
+        window.switchTab = switchTab;
 
         function updateBadges() {
             const lowStockCount = products.filter(p => p.stock <= 5).length;
