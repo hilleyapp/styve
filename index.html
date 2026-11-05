@@ -723,48 +723,86 @@
 
         const initialChats = [];
 
-        // Temporary no-login mode: Styve uses browser localStorage only.
-        // Supabase authentication and cloud writes remain disabled until owner login is re-enabled.
+        // Shared-code cloud sync. The secret is checked only by the Supabase Edge Function.
         const supabaseClient = null;
+        const STYVE_SYNC_URL = 'https://ncauwqggeoicyetunpop.supabase.co/functions/v1/styve-sync';
+        let cloudToken = localStorage.getItem('styve_access_token') || '';
         let cloudUser = null, cloudReady = false, cloudSaveTimer = null, cloudChannel = null, cloudSavePending = false;
+        let cloudUpdatedAt = null, cloudPollingTimer = null, cloudApplyingRemote = false;
         function cloudSnapshot() { return { products, orders, chats, expenses, schemaVersion: 1, updatedAt: new Date().toISOString() }; }
-        function setCloudSyncIndicator(state) {
-            const dot = document.getElementById('cloud-sync-dot');
-            const label = document.getElementById('cloud-sync-label');
-            const wrap = document.getElementById('cloud-sync-indicator');
-            if (!dot || !label || !wrap) return;
-            const styles = {
-                local: ['bg-emerald-400', 'text-emerald-300', 'border-emerald-500/30', 'Saved locally'],
-                connected: ['bg-emerald-400', 'text-emerald-300', 'border-emerald-500/30', 'Connected'],
-                syncing: ['bg-sky-400 animate-pulse', 'text-sky-300', 'border-sky-500/30', 'Syncing'],
-                offline: ['bg-rose-400', 'text-rose-300', 'border-rose-500/30', 'Offline'],
-                connecting: ['bg-amber-400 animate-pulse', 'text-amber-300', 'border-amber-500/30', 'Connecting']
-            };
-            const s = styles[state] || styles.connecting;
-            dot.className = 'h-2 w-2 rounded-full ' + s[0];
-            label.textContent = s[3];
-            wrap.className = 'flex items-center gap-1.5 rounded-full border bg-slate-800/80 px-2.5 py-2 text-[11px] font-semibold whitespace-nowrap ' + s[1] + ' ' + s[2];
-            wrap.title = state === 'local' ? 'Your changes are saved in this browser on this device. Cloud sync is not enabled yet.' : state === 'offline' ? 'No internet connection. Changes remain saved on this device.' : state === 'syncing' ? 'Saving changes to Styve cloud.' : state === 'connected' ? 'Styve cloud is connected.' : 'Connecting to Styve cloud.';
-        }
-        function setCloudStatus(message, isError = false) {
-            const el = document.getElementById('cloud-auth-status');
-            if (el) { el.textContent = message; el.className = 'text-xs ' + (isError ? 'text-rose-400' : 'text-slate-400'); }
+        async function styveCloudRequest(action, data) {
+            const response = await fetch(STYVE_SYNC_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'apikey': 'sb_publishable_TSOr4yScy1e2yONR3KyuCQ_0HZ1b6ox', 'x-styve-token': cloudToken },
+                body: JSON.stringify({ action, ...(data ? { data } : {}) })
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(result.error || 'Cloud request failed (' + response.status + ')');
+            return result;
         }
         async function writeCloudState() {
-            if (!cloudReady || !cloudUser) return;
+            if (!cloudReady || !cloudToken || cloudApplyingRemote) return;
             if (!navigator.onLine) { cloudSavePending = true; setCloudSyncIndicator('offline'); return; }
             setCloudSyncIndicator('syncing');
-            const { error } = await supabaseClient.from('styve_app_state').upsert({ owner_id: cloudUser.id, data: cloudSnapshot(), updated_at: new Date().toISOString() }, { onConflict: 'owner_id' });
-            if (error) {
+            try {
+                const result = await styveCloudRequest('save', cloudSnapshot());
+                cloudUpdatedAt = result.updatedAt || new Date().toISOString();
+                cloudSavePending = false;
+                setCloudSyncIndicator('connected');
+            } catch (error) {
                 cloudSavePending = true; console.error('Styve cloud save failed:', error);
                 setCloudSyncIndicator('offline');
-                toast('Cloud sync failed. Changes remain saved on this device.');
-            } else { cloudSavePending = false; setCloudSyncIndicator('connected'); }
+                toast('Cloud sync failed. Your changes remain saved on this device.');
+            }
         }
         function scheduleCloudSave() {
-            if (!cloudReady || !cloudUser) return;
-            clearTimeout(cloudSaveTimer); cloudSaveTimer = setTimeout(writeCloudState, 500);
+            if (!cloudReady || cloudApplyingRemote) return;
+            clearTimeout(cloudSaveTimer);
+            cloudSaveTimer = setTimeout(writeCloudState, 650);
         }
+        async function pollCloudState() {
+            if (!cloudReady || !cloudToken || !navigator.onLine) return;
+            try {
+                const remote = await styveCloudRequest('load');
+                if (remote.data && remote.updatedAt && remote.updatedAt !== cloudUpdatedAt) {
+                    cloudUpdatedAt = remote.updatedAt;
+                    cloudReady = false; cloudApplyingRemote = true;
+                    await applyCloudState(remote.data);
+                    cloudApplyingRemote = false; cloudReady = true;
+                    setCloudSyncIndicator('connected');
+                }
+            } catch (error) {
+                console.warn('Styve cloud refresh failed:', error);
+                setCloudSyncIndicator('offline');
+            }
+        }
+        async function connectStyveCloud(token) {
+            cloudToken = token.trim();
+            if (!cloudToken) throw new Error('Enter your Styve access code.');
+            await styveCloudRequest('verify');
+            localStorage.setItem('styve_access_token', cloudToken);
+            const remote = await styveCloudRequest('load');
+            if (remote.data) {
+                cloudReady = false; cloudApplyingRemote = true;
+                await applyCloudState(remote.data);
+                cloudApplyingRemote = false;
+                cloudUpdatedAt = remote.updatedAt;
+            } else {
+                // First authorised device seeds the new, empty shared workspace.
+                cloudUpdatedAt = null;
+                cloudReady = true;
+                await writeCloudState();
+            }
+            cloudReady = true;
+            document.getElementById('cloud-auth-gate')?.classList.add('hidden');
+            setCloudSyncIndicator('connected');
+            if (cloudPollingTimer) clearInterval(cloudPollingTimer);
+            cloudPollingTimer = setInterval(pollCloudState, 5000);
+            refreshAll(); renderInbox();
+            toast(remote.data ? 'Styve cloud connected. Shared data loaded.' : 'Styve cloud connected. Workspace created.');
+        }
+        window.addEventListener('offline', () => setCloudSyncIndicator('offline'));
+        window.addEventListener('online', () => { if (cloudToken) { setCloudSyncIndicator('syncing'); pollCloudState(); if (cloudSavePending) writeCloudState(); } });
         async function applyCloudState(data) {
             if (!data || typeof data !== 'object') return;
             if (Array.isArray(data.products)) products = data.products;
@@ -928,7 +966,8 @@
                 localStorage.setItem('ig_chats', JSON.stringify(chats));
                 localStorage.setItem('ig_expenses', JSON.stringify(expenses));
                 updateBadges();
-                setCloudSyncIndicator('local');
+                if (cloudReady) scheduleCloudSave();
+                else setCloudSyncIndicator('local');
             } catch (e) { console.error("Storage error", e); }
         }
 
@@ -1844,6 +1883,47 @@
           showTab(active ? active.id.replace('tab-', '') : 'dashboard');
         });
       })();
+    </script>
+    <script id="styve-shared-code-access">
+      document.addEventListener('DOMContentLoaded', () => {
+        const gate = document.getElementById('cloud-auth-gate');
+        if (!gate) return;
+        gate.classList.remove('hidden');
+        gate.innerHTML = `
+          <div class="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
+            <div class="flex items-center gap-3 mb-5">
+              <img src="./assets/styve-logo.svg" alt="Styve" class="w-12 h-12 rounded-xl">
+              <div><h1 class="text-xl font-extrabold text-white">Connect Styve</h1><p class="text-xs text-slate-400">Use your shared access code to sync across devices</p></div>
+            </div>
+            <form id="styve-access-form" class="space-y-3">
+              <label for="styve-access-code" class="block text-xs font-semibold text-slate-300">Shared access code</label>
+              <input id="styve-access-code" type="password" required autocomplete="current-password" class="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-3 text-white" placeholder="Enter Styve access code">
+              <p id="styve-access-status" class="text-xs text-slate-400" aria-live="polite">One shared code connects your authorised devices to the same Styve workspace.</p>
+              <button id="styve-access-submit" type="submit" class="w-full rounded-xl bg-pink-600 px-4 py-3 text-sm font-bold text-white">Connect & Sync</button>
+            </form>
+          </div>`;
+        const form = document.getElementById('styve-access-form');
+        const input = document.getElementById('styve-access-code');
+        const status = document.getElementById('styve-access-status');
+        const submit = document.getElementById('styve-access-submit');
+        form.addEventListener('submit', async event => {
+          event.preventDefault();
+          submit.disabled = true; submit.textContent = 'Connecting…';
+          status.textContent = 'Checking access code and loading shared data…';
+          try {
+            await connectStyveCloud(input.value);
+          } catch (error) {
+            status.textContent = error.message || 'Could not connect. Check the code and try again.';
+            status.className = 'text-xs text-rose-400';
+          } finally {
+            submit.disabled = false; submit.textContent = 'Connect & Sync';
+          }
+        });
+        if (cloudToken) input.value = cloudToken;
+        setCloudSyncIndicator('connecting');
+        if (cloudToken) form.requestSubmit();
+        else input.focus();
+      });
     </script>
 </body>
 </html>
