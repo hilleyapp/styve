@@ -341,6 +341,48 @@
       }
     </style>
 
+
+    <style id="styve-universal-responsive-layout">
+      *, *::before, *::after { box-sizing: border-box; }
+      html, body { width:100%; max-width:100%; overflow-x:hidden !important; }
+      body { min-width:320px; }
+      body > .flex-1.flex.flex-col { min-width:0 !important; width:calc(100% - 16rem); max-width:100%; }
+      main { min-width:0 !important; width:100%; max-width:100%; }
+      main > *, main section, main section > *, main .grid, main .flex { min-width:0; }
+      main img, main canvas, main svg { max-width:100%; }
+      main input, main select, main textarea, main button { max-width:100%; }
+      main table { white-space:nowrap; }
+      main .overflow-x-auto { max-width:100%; -webkit-overflow-scrolling:touch; }
+      main .overflow-x-auto > table { min-width:600px; }
+      main .grid { grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr)); }
+      #sidebar { flex:0 0 16rem; }
+      @media (max-width:1023px) {
+        body { display:block !important; }
+        body > .flex-1.flex.flex-col { width:100% !important; min-height:100dvh !important; }
+        #sidebar { position:fixed !important; top:0; bottom:0; left:0; width:min(18rem,86vw) !important; height:100dvh !important; transform:translateX(-100%); }
+        #sidebar:not(.-translate-x-full) { transform:translateX(0) !important; }
+        #sidebar-backdrop { position:fixed; inset:0; }
+        main { padding:clamp(0.75rem,3vw,1.5rem) !important; gap:1rem !important; }
+        main .grid { grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr)); gap:0.75rem !important; }
+        header { padding-left:0.75rem !important; padding-right:0.75rem !important; gap:0.5rem; }
+        #page-title { min-width:0; font-size:clamp(0.9rem,2.5vw,1.1rem); overflow-wrap:anywhere; }
+      }
+      @media (max-width:600px) {
+        main { padding:0.75rem !important; }
+        main .grid { grid-template-columns:minmax(0,1fr) !important; }
+        main .flex-wrap { flex-wrap:wrap !important; }
+        main .overflow-x-auto > table { min-width:560px; }
+        main .rounded-2xl { border-radius:0.9rem; }
+        header { min-height:3.75rem; height:auto !important; padding-top:0.5rem !important; padding-bottom:0.5rem !important; }
+        header > div { min-width:0; }
+        header .text-xs { font-size:0.68rem; }
+        .fixed.inset-0 > .max-w-md, .fixed.inset-0 > .max-w-lg, .fixed.inset-0 > .max-w-xl, .fixed.inset-0 > .max-w-2xl { width:calc(100vw - 1.5rem) !important; max-width:calc(100vw - 1.5rem) !important; max-height:calc(100dvh - 1.5rem); overflow-y:auto; }
+      }
+      @media (min-width:1024px) {
+        body > .flex-1.flex.flex-col { width:calc(100% - 16rem); }
+        main { width:100%; }
+      }
+    </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-full">
 
