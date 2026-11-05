@@ -407,9 +407,7 @@
                 <div id="cloud-sync-indicator" role="status" aria-live="polite" title="Styve cloud sync status" class="flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-800/80 px-2.5 py-2 text-[11px] font-semibold text-slate-300 whitespace-nowrap">
                     <span id="cloud-sync-dot" class="h-2 w-2 rounded-full bg-slate-500"></span><span id="cloud-sync-label">Connecting</span>
                 </div>
-                <button onclick="openNewOrderModal()" class="px-3.5 py-2 bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white text-xs sm:text-sm font-semibold rounded-xl shadow-lg shadow-pink-500/20 transition flex items-center space-x-2">
-                    <i class="fa-solid fa-plus text-xs"></i><span>Log Order</span>
-                </button>
+
                 <button onclick="openAddProductModal()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-semibold rounded-xl border border-slate-700 transition hidden sm:flex items-center space-x-2">
                     <i class="fa-solid fa-box text-xs text-amber-400"></i><span>Add Product</span>
                 </button>
@@ -528,7 +526,7 @@
                 <div class="flex-1 bg-slate-900 rounded-2xl border border-slate-800 flex flex-col overflow-hidden shadow-sm">
                     <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
                         <h4 id="chat-handle" class="font-bold text-white text-sm">Select a chat</h4>
-                        <button onclick="convertChatToOrder()" id="convert-to-order-btn" class="hidden px-3.5 py-2 bg-gradient-to-r from-pink-500 to-rose-600 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center gap-1.5"><i class="fa-solid fa-bolt"></i> Convert to Order</button>
+                        
                     </div>
                     <div id="chat-messages-container" class="flex-1 p-4 overflow-y-auto space-y-3 bg-slate-950/40"></div>
                     <form onsubmit="sendChatMessage(event)" class="p-3 border-t border-slate-800 flex gap-2 bg-slate-900">
@@ -1324,7 +1322,6 @@
             const chat = chats.find(c => c.id === activeChatId);
             if (!chat) return;
             document.getElementById('chat-handle').textContent = chat.handle;
-            document.getElementById('convert-to-order-btn').classList.remove('hidden');
             document.getElementById('chat-input-text').disabled = false;
             document.getElementById('chat-send-btn').disabled = false;
             
@@ -1407,19 +1404,7 @@
             toast("Order successfully logged!");
         }
 
-        function convertChatToOrder() {
-            const chat = chats.find(c => c.id === activeChatId);
-            if (!chat) return;
-            openNewOrderModal();
-            document.getElementById('order-ig').value = chat.handle;
-            if (chat.prefillCart) {
-                chat.prefillCart.forEach(pId => {
-                    const prod = products.find(p => p.id === pId);
-                    if (prod) orderCart.push({ productId: prod.id, name: prod.name, qty: 1, price: prod.price });
-                });
-                renderOrderCart();
-            }
-        }
+
 
         function openAddProductModal() {
             document.getElementById('product-form').reset();
