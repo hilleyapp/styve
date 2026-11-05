@@ -587,6 +587,25 @@
                 <label class="block text-xs font-semibold text-slate-300">Password</label><input id="cloud-password" type="password" required minlength="6" autocomplete="current-password" class="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-3 text-white" placeholder="At least 6 characters">
                 <p id="cloud-auth-status" class="text-xs text-slate-400" aria-live="polite">Sign in or create your Styve account. Your data is private to your account.</p>
                 <div class="grid grid-cols-2 gap-2"><button type="submit" class="rounded-xl bg-pink-600 px-4 py-3 text-sm font-bold text-white">Sign in</button><button type="button" id="cloud-signup" class="rounded-xl bg-slate-700 px-4 py-3 text-sm font-bold text-white">Create account</button></div>
+                <button type="button" id="cloud-forgot-password" class="text-xs font-semibold text-pink-300 hover:text-pink-200">Forgot password?</button>
+            </form>
+            <form id="cloud-reset-request-form" class="hidden space-y-3">
+                <p class="text-sm font-semibold text-white">Reset your password</p>
+                <p class="text-xs text-slate-400">Enter the email address registered with Styve. We’ll send you a secure password-reset link.</p>
+                <label class="block text-xs font-semibold text-slate-300" for="cloud-reset-email">Email address</label>
+                <input id="cloud-reset-email" type="email" required autocomplete="email" class="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-3 text-white" placeholder="you@example.com">
+                <p id="cloud-reset-request-status" class="text-xs text-slate-400" aria-live="polite"></p>
+                <button type="submit" class="w-full rounded-xl bg-pink-600 px-4 py-3 text-sm font-bold text-white">Send reset link</button>
+                <button type="button" id="cloud-back-to-login" class="w-full text-xs font-semibold text-slate-300 hover:text-white">Back to sign in</button>
+            </form>
+            <form id="cloud-new-password-form" class="hidden space-y-3">
+                <p class="text-sm font-semibold text-white">Choose a new password</p>
+                <label class="block text-xs font-semibold text-slate-300" for="cloud-new-password">New password</label>
+                <input id="cloud-new-password" type="password" required minlength="6" autocomplete="new-password" class="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-3 text-white" placeholder="At least 6 characters">
+                <label class="block text-xs font-semibold text-slate-300" for="cloud-confirm-password">Confirm new password</label>
+                <input id="cloud-confirm-password" type="password" required minlength="6" autocomplete="new-password" class="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-3 text-white" placeholder="Re-enter your new password">
+                <p id="cloud-new-password-status" class="text-xs text-slate-400" aria-live="polite"></p>
+                <button type="submit" class="w-full rounded-xl bg-pink-600 px-4 py-3 text-sm font-bold text-white">Update password</button>
             </form>
         </div>
     </div>
@@ -801,11 +820,69 @@
             if (error) { setCloudStatus(error.message, true); return; }
             if (data.session) await startCloudSession(data.session);
             else document.getElementById('cloud-auth-gate').classList.remove('hidden');
-            supabaseClient.auth.onAuthStateChange((_event, session) => {
-                if (session && !cloudUser) setTimeout(() => startCloudSession(session), 0);
+            supabaseClient.auth.onAuthStateChange((event, session) => {
+                if (event === 'PASSWORD_RECOVERY') {
+                    showCloudAuthPanel('new-password');
+                    document.getElementById('cloud-new-password-status').textContent = 'Enter and confirm your new password.';
+                    return;
+                }
+                if (session && !cloudUser && event !== 'USER_UPDATED') setTimeout(() => startCloudSession(session), 0);
                 if (!session) { cloudReady = false; cloudUser = null; document.getElementById('cloud-auth-gate').classList.remove('hidden'); }
             });
+            if (new URLSearchParams(window.location.search).has('reset-password')) {
+                showCloudAuthPanel('new-password');
+                document.getElementById('cloud-new-password-status').textContent = 'Open the password-reset link from your email to continue.';
+            }
         }
+        function showCloudAuthPanel(panel) {
+            document.getElementById('cloud-auth-form').classList.toggle('hidden', panel !== 'login');
+            document.getElementById('cloud-reset-request-form').classList.toggle('hidden', panel !== 'request');
+            document.getElementById('cloud-new-password-form').classList.toggle('hidden', panel !== 'new-password');
+            if (panel === 'login') setCloudStatus('Sign in or create your Styve account. Your data is private to your account.');
+        }
+        document.getElementById('cloud-forgot-password').addEventListener('click', () => {
+            const email = document.getElementById('cloud-email').value.trim();
+            document.getElementById('cloud-reset-email').value = email;
+            document.getElementById('cloud-reset-request-status').textContent = '';
+            showCloudAuthPanel('request');
+        });
+        document.getElementById('cloud-back-to-login').addEventListener('click', () => showCloudAuthPanel('login'));
+        document.getElementById('cloud-reset-request-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            const email = document.getElementById('cloud-reset-email').value.trim();
+            const status = document.getElementById('cloud-reset-request-status');
+            status.textContent = 'Sending reset link…';
+            status.className = 'text-xs text-slate-400';
+            const redirectTo = window.location.origin + window.location.pathname + '?reset-password=1';
+            const { error } = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo });
+            if (error) {
+                status.textContent = error.message;
+                status.className = 'text-xs text-rose-400';
+            } else {
+                status.textContent = 'If an account exists for this email, a password-reset link has been sent. Check your inbox and spam folder.';
+            }
+        });
+        document.getElementById('cloud-new-password-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            const password = document.getElementById('cloud-new-password').value;
+            const confirmation = document.getElementById('cloud-confirm-password').value;
+            const status = document.getElementById('cloud-new-password-status');
+            if (password.length < 6) { status.textContent = 'Use at least 6 characters.'; status.className = 'text-xs text-rose-400'; return; }
+            if (password !== confirmation) { status.textContent = 'The passwords do not match.'; status.className = 'text-xs text-rose-400'; return; }
+            status.textContent = 'Updating your password…';
+            status.className = 'text-xs text-slate-400';
+            const { error } = await supabaseClient.auth.updateUser({ password });
+            if (error) {
+                status.textContent = error.message;
+                status.className = 'text-xs text-rose-400';
+                return;
+            }
+            status.textContent = 'Password updated. Signing you in…';
+            status.className = 'text-xs text-emerald-400';
+            window.history.replaceState({}, document.title, window.location.pathname);
+            const { data } = await supabaseClient.auth.getSession();
+            if (data.session) await startCloudSession(data.session);
+        });
         document.getElementById('cloud-auth-form').addEventListener('submit', async e => {
             e.preventDefault(); setCloudStatus('Signing in…');
             const { error } = await supabaseClient.auth.signInWithPassword({ email: document.getElementById('cloud-email').value.trim(), password: document.getElementById('cloud-password').value });
