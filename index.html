@@ -1056,9 +1056,53 @@
                     <td class="p-4 text-xs text-slate-300">${(o.items || []).map(i => `• ${i.name} (x${i.qty})`).join('<br>')}</td>
                     <td class="p-4 font-bold text-white">MVR ${o.total.toFixed(2)}</td>
                     <td class="p-4"><select onchange="updateOrderStatus('${o.id}', this.value)" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs font-semibold focus:outline-none"><option ${o.status==='Pending'?'selected':''}>Pending</option><option ${o.status==='Paid'?'selected':''}>Paid</option><option ${o.status==='Packed'?'selected':''}>Packed</option><option ${o.status==='Shipped'?'selected':''}>Shipped</option><option ${o.status==='Sold'?'selected':''}>Sold</option><option ${o.status==='Cancelled'?'selected':''}>Cancelled</option></select></td>
-                    <td class="p-4 text-right"><button onclick="deleteOrder('${o.id}')" class="text-rose-400 hover:text-rose-300 transition"><i class="fa-solid fa-trash"></i></button></td>
+                    <td class="p-4 text-right"><div class="flex items-center justify-end gap-2 flex-wrap"><button onclick="sendOrderToDeliveryWhatsApp('${o.id}')" class="px-2.5 py-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 rounded-lg text-xs font-semibold whitespace-nowrap"><i class="fa-brands fa-whatsapp mr-1"></i>${o.deliverySentAt ? 'Resend' : 'Send to Delivery'}</button>${o.deliverySentAt ? '<span class="text-[10px] text-emerald-600 font-semibold whitespace-nowrap"><i class="fa-solid fa-check mr-1"></i>Sent</span>' : '<button onclick="markOrderDeliverySent(\''+o.id+'\')" class="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[10px] font-semibold whitespace-nowrap">Mark sent</button>'}<button onclick="deleteOrder('${o.id}')" class="text-rose-400 hover:text-rose-300 transition px-1" title="Delete order"><i class="fa-solid fa-trash"></i></button></div></td>
                 </tr>
             `).join('') || `<tr><td colspan="6" class="p-8 text-center text-slate-500">No orders found.</td></tr>`;
+        }
+
+        function buildDeliveryWhatsAppMessage(order) {
+            const itemLines = (order.items || []).map(item =>
+                \`• \${item.name || 'Product'} × \${Number(item.qty || 0)} — MVR \${(Number(item.price || 0) * Number(item.qty || 0)).toFixed(2)}\`
+            );
+            return [
+                '🚚 *STYVE — NEW DELIVERY ORDER*',
+                '',
+                \`Order: \${order.id || '—'}\`,
+                \`Date: \${order.date || '—'}\`,
+                \`Customer: \${order.igHandle || '—'}\`,
+                \`Phone: \${order.phone || '—'}\`,
+                \`Delivery address: \${order.address || '—'}\`,
+                '',
+                '*Items:*',
+                ...(itemLines.length ? itemLines : ['• No items recorded']),
+                '',
+                \`*TOTAL: MVR \${Number(order.total || 0).toFixed(2)}*\`,
+                \`Payment: \${order.payment || '—'}\`,
+                '',
+                'Please arrange delivery and update the team.'
+            ].join('\n');
+        }
+
+        function sendOrderToDeliveryWhatsApp(id) {
+            const order = orders.find(o => String(o.id) === String(id));
+            if (!order) { toast('Order not found'); return; }
+            const url = 'https://wa.me/?text=' + encodeURIComponent(buildDeliveryWhatsAppMessage(order));
+            const popup = window.open(url, '_blank', 'noopener,noreferrer');
+            if (!popup) {
+                toast('WhatsApp could not be opened. Allow pop-ups and try again.');
+                return;
+            }
+            toast('Order message opened in WhatsApp. Send it to your delivery group.');
+        }
+
+        function markOrderDeliverySent(id) {
+            const order = orders.find(o => String(o.id) === String(id));
+            if (!order) { toast('Order not found'); return; }
+            if (order.deliverySentAt) return;
+            order.deliverySentAt = new Date().toISOString();
+            refreshAll();
+            toast('Order marked as sent to delivery');
         }
 
         function applyOrderStock(order, direction) {
