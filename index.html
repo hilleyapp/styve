@@ -2367,5 +2367,23 @@
       }
     </style>
 
+
+    <script id="styve-desktop-inventory-wheel-fix">
+      // Ensure desktop mouse-wheel input scrolls the main content while
+      // Stock & Inventory is active, even if nested layout rules interfere.
+      (() => {
+        document.addEventListener('wheel', event => {
+          if (window.innerWidth < 1024 || event.ctrlKey || !event.deltaY) return;
+          const inventory = document.getElementById('tab-inventory');
+          if (!inventory || inventory.classList.contains('hidden')) return;
+          const main = document.querySelector('body > .flex-1.flex.flex-col > main');
+          if (!main || !main.contains(event.target)) return;
+          const multiplier = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? main.clientHeight : 1;
+          event.preventDefault();
+          main.scrollTop += event.deltaY * multiplier;
+        }, { capture: true, passive: false });
+      })();
+    </script>
+
 </body>
 </html>
