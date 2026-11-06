@@ -2310,5 +2310,62 @@
       }
     </style>
 
+
+    <style id="styve-inventory-scroll-specificity-fix">
+      /* Override the older inventory-screen-fit rules that hid the main scroll area. */
+      body:has(#tab-inventory:not(.hidden)) > .flex-1.flex.flex-col {
+        height:100vh !important;
+        height:100dvh !important;
+        min-height:0 !important;
+        overflow:hidden !important;
+      }
+      body:has(#tab-inventory:not(.hidden)) > .flex-1.flex.flex-col > main {
+        flex:1 1 auto !important;
+        height:auto !important;
+        min-height:0 !important;
+        overflow-x:hidden !important;
+        overflow-y:auto !important;
+        overscroll-behavior-y:contain !important;
+        -webkit-overflow-scrolling:touch !important;
+      }
+      body:has(#tab-inventory:not(.hidden)) #tab-inventory {
+        display:block !important;
+        height:auto !important;
+        min-height:max-content !important;
+        overflow:visible !important;
+      }
+      body:has(#tab-inventory:not(.hidden)) #tab-inventory > :last-child {
+        display:block !important;
+        flex:none !important;
+        height:auto !important;
+        min-height:max-content !important;
+        overflow:visible !important;
+      }
+      body:has(#tab-inventory:not(.hidden)) #inventory-products-panel,
+      body:has(#tab-inventory:not(.hidden)) #inventory-grid-view,
+      body:has(#tab-inventory:not(.hidden)) #inventory-list-view {
+        height:auto !important;
+        min-height:0 !important;
+        overflow:visible !important;
+      }
+      body:has(#tab-inventory:not(.hidden)) #inventory-list-view {
+        overflow-x:auto !important;
+        overflow-y:visible !important;
+      }
+      @media (max-width:1023px) {
+        body:has(#tab-inventory:not(.hidden)) {
+          height:100vh !important;
+          height:100dvh !important;
+          min-height:0 !important;
+          overflow:hidden !important;
+        }
+        body:has(#tab-inventory:not(.hidden)) > .flex-1.flex.flex-col {
+          width:100% !important;
+          height:100vh !important;
+          height:100dvh !important;
+        }
+      }
+    </style>
+
 </body>
 </html>
