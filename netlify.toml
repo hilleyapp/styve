@@ -1,0 +1,5 @@
+[build]
+  publish = "storefront"
+
+[build.environment]
+  NODE_VERSION = "20"
