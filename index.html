@@ -2259,5 +2259,56 @@
       }
     </style>
 
+
+    <style id="styve-natural-page-scroll-fix">
+      /* Use normal document scrolling instead of a nested, height-constrained scroll area. */
+      html, body {
+        height:auto !important;
+        min-height:100% !important;
+        overflow-x:hidden !important;
+        overflow-y:auto !important;
+      }
+      body {
+        min-height:100vh !important;
+        min-height:100dvh !important;
+        overflow:visible !important;
+      }
+      body > .flex-1.flex.flex-col {
+        height:auto !important;
+        min-height:100vh !important;
+        min-height:100dvh !important;
+        overflow:visible !important;
+      }
+      body > .flex-1.flex.flex-col > main {
+        height:auto !important;
+        min-height:0 !important;
+        flex:1 0 auto !important;
+        overflow:visible !important;
+        overscroll-behavior:auto !important;
+      }
+      #tab-inventory:not(.hidden),
+      #tab-orders:not(.hidden) {
+        height:auto !important;
+        min-height:0 !important;
+        overflow:visible !important;
+      }
+      #inventory-products-panel,
+      #inventory-grid-view,
+      #inventory-list-view {
+        height:auto !important;
+        min-height:0 !important;
+        overflow:visible !important;
+      }
+      #inventory-list-view { overflow-x:auto !important; }
+      @media (max-width:1023px) {
+        body { display:block !important; }
+        body > .flex-1.flex.flex-col {
+          width:100% !important;
+          height:auto !important;
+          min-height:100dvh !important;
+        }
+      }
+    </style>
+
 </body>
 </html>
