@@ -2216,5 +2216,48 @@
         else input.focus();
       });
     </script>
+
+    <style id="styve-inventory-scroll-fix">
+      /* Keep the app shell fixed while the main content owns vertical scrolling. */
+      html, body { height:100% !important; min-height:0 !important; overflow:hidden !important; }
+      body > .flex-1.flex.flex-col {
+        height:100vh !important;
+        height:100dvh !important;
+        min-height:0 !important;
+        overflow:hidden !important;
+      }
+      body > .flex-1.flex.flex-col > main {
+        flex:1 1 auto !important;
+        min-height:0 !important;
+        overflow-x:hidden !important;
+        overflow-y:auto !important;
+        overscroll-behavior-y:contain;
+        -webkit-overflow-scrolling:touch;
+      }
+      #tab-inventory:not(.hidden) {
+        display:block !important;
+        height:auto !important;
+        min-height:max-content !important;
+        overflow:visible !important;
+      }
+      #inventory-products-panel {
+        height:auto !important;
+        min-height:0 !important;
+        overflow:visible !important;
+      }
+      #inventory-grid-view,
+      #inventory-list-view {
+        height:auto !important;
+        min-height:0 !important;
+        overflow-x:auto !important;
+        overflow-y:visible !important;
+        -webkit-overflow-scrolling:touch;
+      }
+      #inventory-grid-view { overflow-x:hidden !important; }
+      @media (max-width:760px) {
+        #inventory-list-view { overflow-x:hidden !important; }
+      }
+    </style>
+
 </body>
 </html>
