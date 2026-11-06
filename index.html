@@ -1359,7 +1359,7 @@
             document.getElementById('dashboard-activity').innerHTML = activity.length ? activity.map(o => `
                 <div class="flex items-start gap-3 py-2 border-b border-slate-100 last:border-0">
                     <span class="mt-1 h-2 w-2 rounded-full bg-pink-500 shrink-0"></span>
-                    <div class="min-w-0 flex-1"><p class="text-xs font-semibold text-slate-800 truncate">${o.id} · ${o.igHandle}</p><p class="text-[10px] text-slate-500">${o.date} · ${o.status} · MVR ${Number(o.total || 0).toFixed(2)}</p></div>
+                    <div class="min-w-0 flex-1"><p class="text-xs font-semibold text-slate-800 truncate">${getOrderNumber(o)} · ${o.igHandle}</p><p class="text-[10px] text-slate-500">${o.date} · ${o.status} · MVR ${Number(o.total || 0).toFixed(2)}</p></div>
                 </div>`).join('') : '<p class="text-xs text-slate-500 py-3">No recent activity yet.</p>';
 
             renderLiveCharts('dashboard-sales-chart', 'dashboard-products-chart', 'dashboard');
