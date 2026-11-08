@@ -145,210 +145,32 @@
     </style>
 
 
-    <style id="inventory-screen-fit">
-      /* Keep the inventory workspace inside the visible viewport. */
-      body:has(#tab-inventory:not(.hidden)) {
-        height: 100vh;
-        height: 100dvh;
-        min-height: 0;
-        overflow: hidden !important;
+    <style id="styve-table-presentation">
+      #tab-inventory table, #tab-orders table {
+        width:100%;
+        border-collapse:separate;
+        border-spacing:0;
       }
-      body:has(#tab-inventory:not(.hidden)) > .flex-1.flex.flex-col {
-        height: 100vh;
-        height: 100dvh;
-        min-height: 0 !important;
-        overflow: hidden;
-      }
-      body:has(#tab-inventory:not(.hidden)) main {
-        flex: 1 1 auto;
-        min-height: 0;
-        overflow: hidden !important;
-        padding-top: 1rem;
-        padding-bottom: 1rem;
-      }
-      #tab-inventory:not(.hidden) {
-        height: 100%;
-        min-height: 0;
-        display: flex;
-        flex-direction: column;
-        gap: .75rem;
-        overflow: hidden;
-      }
-      #tab-inventory > :first-child {
-        flex: 0 0 auto;
-        gap: .75rem;
-        padding: .75rem;
-      }
-      #tab-inventory > :first-child > div {
-        min-width: 0;
-      }
-      #tab-inventory > :last-child {
-        flex: 1 1 auto;
-        min-height: 0;
-        display: flex;
-        flex-direction: column;
-      }
-      #tab-inventory > :last-child > div {
-        flex: 1 1 auto;
-        min-height: 0;
-        overflow: auto;
-        overscroll-behavior: contain;
-        -webkit-overflow-scrolling: touch;
-      }
-      #tab-inventory table {
-        width: 100%;
-        min-width: 650px;
-        border-collapse: separate;
-        border-spacing: 0;
-      }
-      #tab-inventory thead {
-        position: sticky;
-        top: 0;
-        z-index: 5;
-      }
-      #tab-inventory th,
-      #tab-inventory td {
-        padding: .65rem .8rem;
-      }
-      @media (max-width: 640px) {
-        body:has(#tab-inventory:not(.hidden)) main {
-          padding: .65rem !important;
-        }
-        #tab-inventory:not(.hidden) {
-          gap: .6rem;
-        }
-        #tab-inventory > :first-child {
-          padding: .65rem;
-          gap: .55rem;
-        }
-        #tab-inventory > :first-child > div {
-          flex-basis: 100%;
-          min-width: 100%;
-        }
-        #tab-inventory > :first-child > button {
-          width: 100%;
-          justify-content: center;
-        }
-        #tab-inventory th,
-        #tab-inventory td {
-          padding: .55rem .6rem;
-          font-size: 11px;
-        }
-      }
-
-      /* Keep Sales & Orders inside the viewport; scroll only the order list. */
-      body:has(#tab-orders:not(.hidden)) {
-        height: 100vh;
-        height: 100dvh;
-        min-height: 0;
-        overflow: hidden !important;
-      }
-      body:has(#tab-orders:not(.hidden)) > .flex-1.flex.flex-col {
-        height: 100vh;
-        height: 100dvh;
-        min-height: 0 !important;
-        overflow: hidden;
-      }
-      body:has(#tab-orders:not(.hidden)) main {
-        flex: 1 1 auto;
-        min-height: 0;
-        overflow: hidden !important;
-        padding-top: 1rem;
-        padding-bottom: 1rem;
-      }
-      #tab-orders:not(.hidden) {
-        height: 100%;
-        min-height: 0;
-        display: flex;
-        flex-direction: column;
-        gap: .75rem;
-        overflow: hidden;
-      }
-      #tab-orders > :first-child {
-        flex: 0 0 auto;
-        gap: .75rem;
-        padding: .75rem;
-      }
-      #tab-orders > :first-child > div {
-        min-width: 0;
-      }
-      #tab-orders > :last-child {
-        flex: 1 1 auto;
-        min-height: 0;
-        display: flex;
-        flex-direction: column;
-      }
-      #tab-orders > :last-child > div {
-        flex: 1 1 auto;
-        min-height: 0;
-        overflow: auto;
-        overscroll-behavior: contain;
-        -webkit-overflow-scrolling: touch;
-      }
-      #tab-orders table {
-        width: 100%;
-        min-width: 900px;
-        border-collapse: separate;
-        border-spacing: 0;
-      }
-      #tab-orders thead {
-        position: sticky;
-        top: 0;
-        z-index: 5;
-      }
-      #tab-orders th,
-      #tab-orders td {
-        padding: .65rem .8rem;
-      }
-      @media (max-width: 640px) {
-        body:has(#tab-orders:not(.hidden)) main {
-          padding: .65rem !important;
-        }
-        #tab-orders:not(.hidden) {
-          gap: .6rem;
-        }
-        #tab-orders > :first-child {
-          padding: .65rem;
-          gap: .55rem;
-        }
-        #tab-orders > :first-child > div {
-          flex-basis: 100%;
-          min-width: 100%;
-        }
-        #tab-orders > :first-child > button {
-          width: 100%;
-          justify-content: center;
-        }
-        #tab-orders th,
-        #tab-orders td {
-          padding: .55rem .6rem;
-          font-size: 11px;
-        }
-      }
-      @media (max-width: 640px) {
-        body:has(#tab-online-orders:not(.hidden)) main { padding: .65rem !important; }
-        #tab-online-orders:not(.hidden) { gap: .6rem; min-width: 0; }
-        #tab-online-orders > :first-child { padding: .65rem; gap: .65rem; }
-        #tab-online-orders > :first-child > div:last-child { width: 100%; min-width: 0; }
-        #tab-online-orders #online-order-search { width: 100%; min-width: 0; }
-        #online-orders-table-wrap { display: none; }
-        #online-orders-mobile-cards { display: grid !important; gap: .75rem; }
+      #tab-inventory thead, #tab-orders thead { position:sticky; top:0; z-index:5; }
+      #tab-inventory th, #tab-inventory td, #tab-orders th, #tab-orders td { padding:.65rem .8rem; }
+      #tab-orders table { min-width:900px; }
+      #tab-inventory table { min-width:650px; }
+      @media (max-width:640px) {
+        body:has(#tab-inventory:not(.hidden)) main,
+        body:has(#tab-orders:not(.hidden)) main { padding:.65rem !important; }
+        #tab-inventory th, #tab-inventory td, #tab-orders th, #tab-orders td { padding:.55rem .6rem; font-size:11px; }
+        #tab-orders > :first-child { padding:.65rem; gap:.55rem; }
+        #tab-orders > :first-child > div { flex-basis:100%; min-width:0; }
+        #tab-orders > :first-child > button { width:100%; justify-content:center; }
+        #tab-online-orders:not(.hidden) { gap:.6rem; min-width:0; }
+        #tab-online-orders > :first-child { padding:.65rem; gap:.65rem; }
+        #tab-online-orders > :first-child > div:last-child { width:100%; min-width:0; }
+        #tab-online-orders #online-order-search { width:100%; min-width:0; }
+        #online-orders-table-wrap { display:none; }
+        #online-orders-mobile-cards { display:grid !important; gap:.75rem; }
       }
     </style>
-    <style id="styve-navigation-scroll-fix">
-      html, body { width:100%; min-height:100%; }
-      body { height:100vh; height:100dvh; min-height:0 !important; overflow:hidden !important; }
-      body > .flex-1.flex.flex-col { height:100vh; height:100dvh; min-height:0 !important; min-width:0; overflow:hidden !important; }
-      body > .flex-1.flex.flex-col > main { flex:1 1 auto; min-height:0 !important; min-width:0; overflow-y:auto !important; overflow-x:hidden !important; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; }
-      .tab-content[style*="display: block"] { min-height:max-content; }
-      #tab-inventory[style*="display: block"], #tab-orders[style*="display: block"] { height:auto !important; min-height:max-content !important; overflow:visible !important; display:block !important; }
-      #tab-inventory[style*="display: block"] > :last-child, #tab-orders[style*="display: block"] > :last-child { display:block !important; min-height:0 !important; }
-      #tab-inventory[style*="display: block"] > :last-child > div, #tab-orders[style*="display: block"] > :last-child > div { overflow-x:auto !important; overflow-y:visible !important; min-height:0 !important; }
-      @media (max-width:1023px) {
-        #sidebar { z-index:60 !important; }
-        #sidebar-backdrop { z-index:55 !important; }
-      }
-    </style>
+    
 
 
     <style id="styve-inventory-view-layout">
@@ -1666,8 +1488,16 @@
                 </article>
             `).join('') || '<div class="col-span-full p-8 text-center text-slate-500">No orders found.</div>';
 
-            document.getElementById('orders-grid-view')?.classList.toggle('hidden', view !== 'grid');
-            document.getElementById('orders-list-view')?.classList.toggle('hidden', view !== 'list');
+            const gridView = document.getElementById('orders-grid-view');
+            const listView = document.getElementById('orders-list-view');
+            if (gridView) {
+                gridView.classList.toggle('hidden', view !== 'grid');
+                gridView.style.display = view === 'grid' ? 'block' : 'none';
+            }
+            if (listView) {
+                listView.classList.toggle('hidden', view !== 'list');
+                listView.style.display = view === 'list' ? 'block' : 'none';
+            }
             const gridButton = document.getElementById('orders-grid-toggle');
             const listButton = document.getElementById('orders-list-toggle');
             [gridButton, listButton].forEach(button => {
@@ -2326,7 +2156,8 @@
             if (id === 'analytics' && typeof window.renderAnalytics === 'function') window.renderAnalytics();
           } catch (err) { console.error('Styve tab render error:', err); }
           closeMenu();
-          window.scrollTo(0, 0);
+          const mainScroller = document.querySelector('body > .flex-1.flex.flex-col > main');
+          if (mainScroller) mainScroller.scrollTop = 0;
         }
         document.addEventListener('click', function (event) {
           const nav = event.target.closest && event.target.closest('.nav-item[id^="nav-"]');
@@ -2394,285 +2225,85 @@
       });
     </script>
 
-    <style id="styve-inventory-scroll-fix">
-      /* Keep the app shell fixed while the main content owns vertical scrolling. */
-      html, body { height:100% !important; min-height:0 !important; overflow:hidden !important; }
-      body > .flex-1.flex.flex-col {
-        height:100vh !important;
-        height:100dvh !important;
-        min-height:0 !important;
-        overflow:hidden !important;
-      }
-      body > .flex-1.flex.flex-col > main {
-        flex:1 1 auto !important;
-        min-height:0 !important;
-        overflow-x:hidden !important;
-        overflow-y:auto !important;
-        overscroll-behavior-y:contain;
-        -webkit-overflow-scrolling:touch;
-      }
-      #tab-inventory:not(.hidden) {
-        display:block !important;
-        height:auto !important;
-        min-height:max-content !important;
-        overflow:visible !important;
-      }
-      #inventory-products-panel {
-        height:auto !important;
-        min-height:0 !important;
-        overflow:visible !important;
-      }
-      #inventory-grid-view,
-      #inventory-list-view {
-        height:auto !important;
-        min-height:0 !important;
-        overflow-x:auto !important;
-        overflow-y:visible !important;
-        -webkit-overflow-scrolling:touch;
-      }
-      #inventory-grid-view { overflow-x:hidden !important; }
-      @media (max-width:760px) {
-        #inventory-list-view { overflow-x:hidden !important; }
-      }
-    </style>
-
-
-    <style id="styve-natural-page-scroll-fix">
-      /* Use normal document scrolling instead of a nested, height-constrained scroll area. */
-      html, body {
-        height:auto !important;
-        min-height:100% !important;
-        overflow-x:hidden !important;
-        overflow-y:auto !important;
-      }
-      body {
-        min-height:100vh !important;
-        min-height:100dvh !important;
-        overflow:visible !important;
-      }
-      body > .flex-1.flex.flex-col {
-        height:auto !important;
-        min-height:100vh !important;
-        min-height:100dvh !important;
-        overflow:visible !important;
-      }
-      body > .flex-1.flex.flex-col > main {
-        height:auto !important;
-        min-height:0 !important;
-        flex:1 0 auto !important;
-        overflow:visible !important;
-        overscroll-behavior:auto !important;
-      }
-      #tab-inventory:not(.hidden),
-      #tab-orders:not(.hidden) {
-        height:auto !important;
-        min-height:0 !important;
-        overflow:visible !important;
-      }
-      #inventory-products-panel,
-      #inventory-grid-view,
-      #inventory-list-view {
-        height:auto !important;
-        min-height:0 !important;
-        overflow:visible !important;
-      }
-      #inventory-list-view { overflow-x:auto !important; }
-      @media (max-width:1023px) {
-        body { display:block !important; }
-        body > .flex-1.flex.flex-col {
-          width:100% !important;
-          height:auto !important;
-          min-height:100dvh !important;
-        }
-      }
-    </style>
-
-
-    <style id="styve-inventory-scroll-specificity-fix">
-      /* Override the older inventory-screen-fit rules that hid the main scroll area. */
-      body:has(#tab-inventory:not(.hidden)) > .flex-1.flex.flex-col {
-        height:100vh !important;
-        height:100dvh !important;
-        min-height:0 !important;
-        overflow:hidden !important;
-      }
-      body:has(#tab-inventory:not(.hidden)) > .flex-1.flex.flex-col > main {
-        flex:1 1 auto !important;
-        height:auto !important;
-        min-height:0 !important;
-        overflow-x:hidden !important;
-        overflow-y:auto !important;
-        overscroll-behavior-y:contain !important;
-        -webkit-overflow-scrolling:touch !important;
-      }
-      body:has(#tab-inventory:not(.hidden)) #tab-inventory {
-        display:block !important;
-        height:auto !important;
-        min-height:max-content !important;
-        overflow:visible !important;
-      }
-      body:has(#tab-inventory:not(.hidden)) #tab-inventory > :last-child {
-        display:block !important;
-        flex:none !important;
-        height:auto !important;
-        min-height:max-content !important;
-        overflow:visible !important;
-      }
-      body:has(#tab-inventory:not(.hidden)) #inventory-products-panel,
-      body:has(#tab-inventory:not(.hidden)) #inventory-grid-view,
-      body:has(#tab-inventory:not(.hidden)) #inventory-list-view {
-        height:auto !important;
-        min-height:0 !important;
-        overflow:visible !important;
-      }
-      body:has(#tab-inventory:not(.hidden)) #inventory-list-view {
-        overflow-x:auto !important;
-        overflow-y:visible !important;
-      }
-      @media (max-width:1023px) {
-        body:has(#tab-inventory:not(.hidden)) {
-          height:100vh !important;
-          height:100dvh !important;
-          min-height:0 !important;
-          overflow:hidden !important;
-        }
-        body:has(#tab-inventory:not(.hidden)) > .flex-1.flex.flex-col {
-          width:100% !important;
-          height:100vh !important;
-          height:100dvh !important;
-        }
-      }
-    </style>
-
-
-    <script id="styve-desktop-inventory-wheel-fix">
-      // Ensure desktop mouse-wheel input scrolls the main content while
-      // Stock & Inventory is active, even if nested layout rules interfere.
-      (() => {
-        document.addEventListener('wheel', event => {
-          if (window.innerWidth < 1024 || event.ctrlKey || !event.deltaY) return;
-          const inventory = document.getElementById('tab-inventory');
-          if (!inventory || inventory.classList.contains('hidden')) return;
-          const main = document.querySelector('body > .flex-1.flex.flex-col > main');
-          if (!main || !main.contains(event.target)) return;
-          const multiplier = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? main.clientHeight : 1;
-          event.preventDefault();
-          main.scrollTop += event.deltaY * multiplier;
-        }, { capture: true, passive: false });
-      })();
-    </script>
+    
 
 
     
 
-    <style id="styve-sales-orders-vertical-scroll-fix">
-      /* Sales & Orders: allow the full page to grow and scroll vertically. */
-      html:has(#tab-orders:not(.hidden)),
-      body:has(#tab-orders:not(.hidden)) {
-        height:auto !important;
-        min-height:100% !important;
+
+    
+
+
+    
+
+
+    
+
+    
+
+
+    
+    
+
+
+    <style id="styve-unified-dashboard-scroll">
+      /* One predictable vertical scroll container for every dashboard tab. */
+      html, body { width:100%; height:100%; min-height:0; overflow:hidden !important; }
+      body { display:flex; flex-direction:row; min-width:0; }
+      body > .flex-1.flex.flex-col {
+        display:flex;
+        flex-direction:column;
+        width:calc(100% - 16rem);
+        height:100vh;
+        height:100dvh;
+        min-height:0 !important;
+        min-width:0;
+        overflow:hidden !important;
+      }
+      body > .flex-1.flex.flex-col > main {
+        flex:1 1 auto !important;
+        height:0;
+        min-height:0 !important;
+        min-width:0;
         overflow-x:hidden !important;
         overflow-y:auto !important;
+        overscroll-behavior-y:auto !important;
+        -webkit-overflow-scrolling:touch;
+        scrollbar-gutter:stable;
       }
-      body:has(#tab-orders:not(.hidden)) {
-        min-height:100vh !important;
-        min-height:100dvh !important;
-        overflow:visible !important;
-      }
-      body:has(#tab-orders:not(.hidden)) > .flex-1.flex.flex-col {
-        height:auto !important;
-        min-height:100vh !important;
-        min-height:100dvh !important;
-        overflow:visible !important;
-      }
-      body:has(#tab-orders:not(.hidden)) > .flex-1.flex.flex-col > main {
-        height:auto !important;
-        min-height:0 !important;
-        flex:1 0 auto !important;
-        overflow:visible !important;
-        overscroll-behavior:auto !important;
-      }
-      body:has(#tab-orders:not(.hidden)) #tab-orders:not(.hidden) {
-        display:block !important;
-        height:auto !important;
-        min-height:0 !important;
-        overflow:visible !important;
-      }
-      body:has(#tab-orders:not(.hidden)) #orders-products-panel,
-      body:has(#tab-orders:not(.hidden)) #orders-grid-view,
-      body:has(#tab-orders:not(.hidden)) #orders-list-view {
-        height:auto !important;
-        min-height:0 !important;
-        overflow:visible !important;
-      }
-      body:has(#tab-orders:not(.hidden)) #orders-list-view {
-        overflow-x:auto !important;
-        overflow-y:visible !important;
-      }
-      @media (max-width:1023px) {
-        body:has(#tab-orders:not(.hidden)) {
-          display:block !important;
-          width:100% !important;
-        }
-        body:has(#tab-orders:not(.hidden)) > .flex-1.flex.flex-col {
-          width:100% !important;
-          height:auto !important;
-          min-height:100dvh !important;
-        }
-      }
-    </style>
-
-
-    <style id="styve-sales-orders-desktop-scroll-final">
-      /* Sales & Orders uses the main content area as the single vertical scroller. */
-      @media (min-width:1024px) {
-        html, body {
-          height:100% !important;
-          min-height:100% !important;
-          overflow:hidden !important;
-        }
-        body:has(#tab-orders:not(.hidden)) {
-          height:100vh !important;
-          height:100dvh !important;
-          min-height:0 !important;
-          overflow:hidden !important;
-        }
-        body:has(#tab-orders:not(.hidden)) > .flex-1.flex.flex-col {
-          height:100vh !important;
-          height:100dvh !important;
-          min-height:0 !important;
-          overflow:hidden !important;
-        }
-        body:has(#tab-orders:not(.hidden)) > .flex-1.flex.flex-col > main {
-          height:0 !important;
-          min-height:0 !important;
-          flex:1 1 0% !important;
-          overflow-x:hidden !important;
-          overflow-y:auto !important;
-          overscroll-behavior-y:contain !important;
-          -webkit-overflow-scrolling:touch;
-        }
-      }
-      body:has(#tab-orders:not(.hidden)) #tab-orders:not(.hidden) {
+      .tab-content[style*="display: block"] {
         display:block !important;
         height:auto !important;
         min-height:max-content !important;
         overflow:visible !important;
       }
-      body:has(#tab-orders:not(.hidden)) #orders-products-panel,
-      body:has(#tab-orders:not(.hidden)) #orders-grid-view,
-      body:has(#tab-orders:not(.hidden)) #orders-list-view {
+      #tab-inventory[style*="display: block"] > :last-child,
+      #tab-orders[style*="display: block"] > :last-child {
+        display:block !important;
+        height:auto !important;
+        min-height:0 !important;
+        overflow:visible !important;
+      }
+      #inventory-products-panel, #inventory-grid-view, #inventory-list-view,
+      #orders-products-panel, #orders-grid-view, #orders-list-view {
         height:auto !important;
         min-height:0 !important;
         max-height:none !important;
         overflow:visible !important;
       }
-      body:has(#tab-orders:not(.hidden)) #orders-list-view {
+      #inventory-list-view, #orders-list-view {
         overflow-x:auto !important;
         overflow-y:visible !important;
+        -webkit-overflow-scrolling:touch;
+      }
+      #orders-grid-view[style*="display: none"],
+      #orders-list-view[style*="display: none"] { display:none !important; }
+      @media (max-width:1023px) {
+        body > .flex-1.flex.flex-col { width:100%; }
+        #sidebar { z-index:60 !important; }
+        #sidebar-backdrop { z-index:55 !important; }
       }
     </style>
-    
 
 </body>
 </html>
