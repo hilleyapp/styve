@@ -2562,5 +2562,63 @@
       })();
     </script>
 
+
+    <style id="styve-sales-orders-vertical-scroll-fix">
+      /* Sales & Orders: allow the full page to grow and scroll vertically. */
+      html:has(#tab-orders:not(.hidden)),
+      body:has(#tab-orders:not(.hidden)) {
+        height:auto !important;
+        min-height:100% !important;
+        overflow-x:hidden !important;
+        overflow-y:auto !important;
+      }
+      body:has(#tab-orders:not(.hidden)) {
+        min-height:100vh !important;
+        min-height:100dvh !important;
+        overflow:visible !important;
+      }
+      body:has(#tab-orders:not(.hidden)) > .flex-1.flex.flex-col {
+        height:auto !important;
+        min-height:100vh !important;
+        min-height:100dvh !important;
+        overflow:visible !important;
+      }
+      body:has(#tab-orders:not(.hidden)) > .flex-1.flex.flex-col > main {
+        height:auto !important;
+        min-height:0 !important;
+        flex:1 0 auto !important;
+        overflow:visible !important;
+        overscroll-behavior:auto !important;
+      }
+      body:has(#tab-orders:not(.hidden)) #tab-orders:not(.hidden) {
+        display:block !important;
+        height:auto !important;
+        min-height:0 !important;
+        overflow:visible !important;
+      }
+      body:has(#tab-orders:not(.hidden)) #orders-products-panel,
+      body:has(#tab-orders:not(.hidden)) #orders-grid-view,
+      body:has(#tab-orders:not(.hidden)) #orders-list-view {
+        height:auto !important;
+        min-height:0 !important;
+        overflow:visible !important;
+      }
+      body:has(#tab-orders:not(.hidden)) #orders-list-view {
+        overflow-x:auto !important;
+        overflow-y:visible !important;
+      }
+      @media (max-width:1023px) {
+        body:has(#tab-orders:not(.hidden)) {
+          display:block !important;
+          width:100% !important;
+        }
+        body:has(#tab-orders:not(.hidden)) > .flex-1.flex.flex-col {
+          width:100% !important;
+          height:auto !important;
+          min-height:100dvh !important;
+        }
+      }
+    </style>
+
 </body>
 </html>
