@@ -2563,21 +2563,7 @@
     </script>
 
 
-    <script id="styve-desktop-sales-orders-wheel-fix">
-      // Route desktop mouse-wheel movement to the document while Sales & Orders is active.
-      // This avoids getting trapped by older nested overflow containers.
-      (() => {
-        document.addEventListener('wheel', event => {
-          if (window.innerWidth < 1024 || event.ctrlKey || !event.deltaY) return;
-          const orders = document.getElementById('tab-orders');
-          if (!orders || orders.classList.contains('hidden') || !orders.contains(event.target)) return;
-          const multiplier = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? window.innerHeight : 1;
-          event.preventDefault();
-          const scroller = document.scrollingElement || document.documentElement;
-          scroller.scrollTop += event.deltaY * multiplier;
-        }, { capture: true, passive: false });
-      })();
-    </script>
+    
 
     <style id="styve-sales-orders-vertical-scroll-fix">
       /* Sales & Orders: allow the full page to grow and scroll vertically. */
@@ -2686,22 +2672,7 @@
         overflow-y:visible !important;
       }
     </style>
-    <script id="styve-sales-orders-main-scroll">
-      (() => {
-        document.addEventListener('wheel', event => {
-          if (window.innerWidth < 1024 || event.ctrlKey || !event.deltaY) return;
-          const orders = document.getElementById('tab-orders');
-          if (!orders || orders.classList.contains('hidden') || !orders.contains(event.target)) return;
-          const main = orders.closest('main');
-          if (!main) return;
-          const canScroll = main.scrollHeight > main.clientHeight + 1;
-          if (!canScroll) return;
-          event.preventDefault();
-          const multiplier = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? main.clientHeight : 1;
-          main.scrollTop += event.deltaY * multiplier;
-        }, { capture:true, passive:false });
-      })();
-    </script>
+    
 
 </body>
 </html>
