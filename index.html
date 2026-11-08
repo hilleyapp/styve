@@ -2102,208 +2102,53 @@
             renderInbox();
         });
     </script>
-    <style id="styve-emergency-layout-fix">
-      html, body { min-height:100% !important; height:auto !important; overflow-x:hidden !important; overflow-y:auto !important; }
-      body { min-height:100vh !important; min-height:100dvh !important; overflow:visible !important; }
-      body:has(#tab-inventory:not(.hidden)), body:has(#tab-orders:not(.hidden)) { height:auto !important; min-height:100vh !important; min-height:100dvh !important; overflow:visible !important; }
-      body > .flex-1.flex.flex-col { height:auto !important; min-height:100vh !important; min-height:100dvh !important; overflow:visible !important; }
-      body > .flex-1.flex.flex-col > main { height:auto !important; min-height:0 !important; overflow:visible !important; flex:1 0 auto !important; }
-      #tab-inventory:not(.hidden), #tab-orders:not(.hidden) { height:auto !important; min-height:0 !important; overflow:visible !important; display:block !important; }
-      #tab-inventory:not(.hidden) > :last-child, #tab-orders:not(.hidden) > :last-child { display:block !important; height:auto !important; overflow:visible !important; }
-      #tab-inventory:not(.hidden) > :last-child > div, #tab-orders:not(.hidden) > :last-child > div { overflow-x:auto !important; overflow-y:visible !important; }
-      .tab-content.hidden { display:none !important; }
-      .tab-content:not(.hidden) { display:block !important; }
-      @media (min-width:1024px) { #sidebar { position:sticky !important; top:0; height:100vh; transform:none !important; } }
-      @media (max-width:1023px) { #sidebar { z-index:60 !important; } #sidebar-backdrop { z-index:55 !important; } }
-    </style>
-    <script>
-      // Independent navigation fallback. This remains available even if the main app script has an error.
-      (function () {
-        const names = {
-          dashboard: 'Dashboard Overview',
-          inventory: 'Stock & Inventory',
-          orders: 'Sales & Orders',
-          inbox: 'Instagram Order Inbox',
-          analytics: 'Analytics & Profit',
-          'online-orders': 'Online Orders'
-        };
-        function closeMenu() {
-          document.getElementById('sidebar')?.classList.add('-translate-x-full');
-          document.getElementById('sidebar-backdrop')?.classList.add('hidden');
-        }
-        function showTab(id) {
-          if (!Object.prototype.hasOwnProperty.call(names, id)) return;
-          document.querySelectorAll('.tab-content').forEach(function (el) { el.classList.add('hidden'); });
-          document.querySelectorAll('.nav-item').forEach(function (el) {
-            el.classList.remove('bg-slate-800', 'text-white', 'active');
-            el.setAttribute('aria-current', 'false');
-          });
-          const panel = document.getElementById('tab-' + id);
-          const nav = document.getElementById('nav-' + id);
-          if (!panel || !nav) return;
-          panel.classList.remove('hidden');
-          nav.classList.add('bg-slate-800', 'text-white', 'active');
-          nav.setAttribute('aria-current', 'page');
-          const title = document.getElementById('page-title');
-          if (title) title.textContent = names[id];
-          try {
-            if (id === 'dashboard' && typeof window.renderDashboard === 'function') window.renderDashboard();
-            if (id === 'dashboard' && typeof window.loadOnlineOrders === 'function') window.loadOnlineOrders();
-            if (id === 'inventory' && typeof window.renderInventory === 'function') window.renderInventory();
-            if (id === 'orders' && typeof window.renderOrders === 'function') window.renderOrders();
-            if (id === 'online-orders' && typeof window.loadOnlineOrders === 'function') window.loadOnlineOrders();
-            if (id === 'inbox' && typeof window.renderInbox === 'function') window.renderInbox();
-            if (id === 'analytics' && typeof window.renderAnalytics === 'function') window.renderAnalytics();
-          } catch (err) { console.error('Styve tab render error:', err); }
-          closeMenu();
-          const mainScroller = document.querySelector('body > .flex-1.flex.flex-col > main');
-          if (mainScroller) mainScroller.scrollTop = 0;
-        }
-        document.addEventListener('click', function (event) {
-          const nav = event.target.closest && event.target.closest('.nav-item[id^="nav-"]');
-          if (nav) {
-            event.preventDefault();
-            event.stopImmediatePropagation();
-            showTab(nav.id.slice(4));
-            return;
-          }
-          if (event.target.closest && event.target.closest('#open-mobile-menu')) {
-            event.preventDefault();
-            document.getElementById('sidebar')?.classList.remove('-translate-x-full');
-            document.getElementById('sidebar-backdrop')?.classList.remove('hidden');
-            return;
-          }
-          if ((event.target.closest && event.target.closest('#close-mobile-menu')) || event.target.id === 'sidebar-backdrop') {
-            closeMenu();
-          }
-        }, true);
-        window.addEventListener('DOMContentLoaded', function () {
-          const active = document.querySelector('.tab-content:not(.hidden)');
-          showTab(active ? active.id.replace('tab-', '') : 'dashboard');
-        });
-      })();
-    </script>
-    <script id="styve-shared-code-access">
-      document.addEventListener('DOMContentLoaded', () => {
-        const gate = document.getElementById('cloud-auth-gate');
-        if (!gate) return;
-        gate.classList.remove('hidden');
-        gate.innerHTML = `
-          <div class="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
-            <div class="flex items-center gap-3 mb-5">
-              <img src="./assets/styve-logo.svg" alt="Styve" class="w-12 h-12 rounded-xl">
-              <div><h1 class="text-xl font-extrabold text-white">Connect Styve</h1><p class="text-xs text-slate-400">Use your shared access code to sync across devices</p></div>
-            </div>
-            <form id="styve-access-form" class="space-y-3">
-              <label for="styve-access-code" class="block text-xs font-semibold text-slate-300">Shared access code</label>
-              <input id="styve-access-code" type="password" required autocomplete="current-password" class="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-3 text-white" placeholder="Enter Styve access code">
-              <p id="styve-access-status" class="text-xs text-slate-400" aria-live="polite">One shared code connects your authorised devices to the same Styve workspace.</p>
-              <button id="styve-access-submit" type="submit" class="w-full rounded-xl bg-pink-600 px-4 py-3 text-sm font-bold text-white">Connect & Sync</button>
-            </form>
-          </div>`;
-        const form = document.getElementById('styve-access-form');
-        const input = document.getElementById('styve-access-code');
-        const status = document.getElementById('styve-access-status');
-        const submit = document.getElementById('styve-access-submit');
-        form.addEventListener('submit', async event => {
-          event.preventDefault();
-          submit.disabled = true; submit.textContent = 'Connecting…';
-          status.textContent = 'Checking access code and loading shared data…';
-          try {
-            await window.connectStyveCloud(input.value);
-          } catch (error) {
-            status.textContent = error.message || 'Could not connect. Check the code and try again.';
-            status.className = 'text-xs text-rose-400';
-          } finally {
-            submit.disabled = false; submit.textContent = 'Connect & Sync';
-          }
-        });
-        if (window.styveSavedAccessCode) input.value = window.styveSavedAccessCode;
-        window.setCloudSyncIndicator('connecting');
-        if (window.styveSavedAccessCode) form.requestSubmit();
-        else input.focus();
-      });
-    </script>
-
-    
 
 
-    
 
-
-    
-
-
-    
-
-
-    
-
-    
-
-
-    
-    
-
-
-    <style id="styve-unified-dashboard-scroll">
-      /* One predictable vertical scroll container for every dashboard tab. */
-      html, body { width:100%; height:100%; min-height:0; overflow:hidden !important; }
-      body { display:flex; flex-direction:row; min-width:0; }
+    <style id="styve-stable-page-layout">
+      /* Use normal document scrolling; avoid nested fixed-height scroll containers. */
+      html, body {
+        width:100%;
+        height:auto !important;
+        min-height:100% !important;
+        overflow-x:hidden !important;
+        overflow-y:auto !important;
+      }
+      body {
+        display:flex;
+        flex-direction:row;
+        align-items:stretch;
+        min-height:100vh !important;
+        min-height:100dvh !important;
+        overflow:visible !important;
+      }
       body > .flex-1.flex.flex-col {
         display:flex;
         flex-direction:column;
-        width:calc(100% - 16rem);
-        height:100vh;
-        height:100dvh;
-        min-height:0 !important;
-        min-width:0;
-        overflow:hidden !important;
+        height:auto !important;
+        min-height:100vh !important;
+        min-height:100dvh !important;
+        overflow:visible !important;
       }
       body > .flex-1.flex.flex-col > main {
-        flex:1 1 auto !important;
-        height:0;
-        min-height:0 !important;
-        min-width:0;
-        overflow-x:hidden !important;
-        overflow-y:auto !important;
-        overscroll-behavior-y:auto !important;
-        -webkit-overflow-scrolling:touch;
-        scrollbar-gutter:stable;
-      }
-      .tab-content[style*="display: block"] {
-        display:block !important;
-        height:auto !important;
-        min-height:max-content !important;
-        overflow:visible !important;
-      }
-      #tab-inventory[style*="display: block"] > :last-child,
-      #tab-orders[style*="display: block"] > :last-child {
-        display:block !important;
+        flex:1 0 auto !important;
         height:auto !important;
         min-height:0 !important;
         overflow:visible !important;
       }
-      #inventory-products-panel, #inventory-grid-view, #inventory-list-view,
-      #orders-products-panel, #orders-grid-view, #orders-list-view {
-        height:auto !important;
-        min-height:0 !important;
-        max-height:none !important;
-        overflow:visible !important;
-      }
+      .tab-content.hidden { display:none !important; }
+      .tab-content:not(.hidden) { display:block !important; }
       #inventory-list-view, #orders-list-view {
+        max-width:100%;
         overflow-x:auto !important;
         overflow-y:visible !important;
         -webkit-overflow-scrolling:touch;
       }
-      #orders-grid-view[style*="display: none"],
-      #orders-list-view[style*="display: none"] { display:none !important; }
       @media (max-width:1023px) {
         body > .flex-1.flex.flex-col { width:100%; }
         #sidebar { z-index:60 !important; }
         #sidebar-backdrop { z-index:55 !important; }
       }
     </style>
-
 </body>
 </html>
