@@ -597,13 +597,13 @@
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div class="lg:col-span-2 bg-slate-900 rounded-2xl p-5 border border-slate-800 flex flex-col shadow-sm">
                         <div class="flex items-center justify-between mb-4">
-                            <h3 class="font-bold text-base text-white flex items-center gap-2"><i class="fa-solid fa-clock-rotate-left text-pink-500"></i>Recent Instagram Orders</h3>
+                            <h3 class="font-bold text-base text-white flex items-center gap-2"><i class="fa-solid fa-clock-rotate-left text-pink-500"></i>Recent Orders</h3>
                             <button onclick="switchTab('orders')" class="text-xs text-pink-400 hover:text-pink-300 font-semibold transition">View All</button>
                         </div>
                         <div class="overflow-x-auto flex-1">
                             <table class="w-full text-left text-xs">
                                 <thead class="bg-slate-800/60 text-slate-400 uppercase font-semibold">
-                                    <tr><th class="px-3 py-2.5 rounded-l-lg">Customer</th><th class="px-3 py-2.5">Items</th><th class="px-3 py-2.5">Total</th><th class="px-3 py-2.5">Status</th><th class="px-3 py-2.5 rounded-r-lg">Action</th></tr>
+                                    <tr><th class="px-3 py-2.5 rounded-l-lg">Customer</th><th class="px-3 py-2.5">Source</th><th class="px-3 py-2.5">Items</th><th class="px-3 py-2.5">Total</th><th class="px-3 py-2.5">Status</th><th class="px-3 py-2.5 rounded-r-lg">Action</th></tr>
                                 </thead>
                                 <tbody id="recent-orders-tbody" class="divide-y divide-slate-800"></tbody>
                             </table>
@@ -1284,6 +1284,7 @@
             const title = document.getElementById('page-title');
             if (title) title.textContent = ({dashboard:'Dashboard Overview',inventory:'Stock & Inventory',orders:'Sales & Orders','online-orders':'Online Orders',inbox:'Instagram Order Inbox',analytics:'Analytics & Profit'})[tabId];
             if (tabId === 'dashboard') renderDashboard();
+            if (tabId === 'dashboard' && cloudToken) loadOnlineOrders();
             if (tabId === 'inventory') renderInventory();
             if (tabId === 'orders') renderOrders();
             if (tabId === 'online-orders') loadOnlineOrders();
@@ -1317,6 +1318,7 @@
                 const badge = document.getElementById('online-orders-badge');
                 badge.textContent = pending; badge.classList.toggle('hidden', pending === 0);
                 status.textContent = onlineOrders.length + ' website order(s) · ' + pending + ' pending';
+                if (!document.getElementById('tab-dashboard')?.classList.contains('hidden')) renderDashboard();
             } catch (error) {
                 console.error('Online orders load failed:', error);
                 status.textContent = error.message || 'Could not load website orders.';
@@ -1426,15 +1428,46 @@
             document.getElementById('stat-avg-margin').textContent = totalRev > 0 ? `${((totalProfit / totalRev) * 100).toFixed(1)}%` : '0%';
 
             const tbody = document.getElementById('recent-orders-tbody');
-            tbody.innerHTML = orders.slice(0, 5).map(o => `
-                <tr class="hover:bg-slate-800/40 transition">
-                    <td class="px-3 py-3 font-semibold text-white">${o.igHandle}<div class="text-[10px] text-slate-400 font-normal">${o.date}</div></td>
-                    <td class="px-3 py-3 text-slate-300">${o.items.length} item(s)</td>
-                    <td class="px-3 py-3 font-bold text-white">MVR ${o.total.toFixed(2)}</td>
-                    <td class="px-3 py-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-400">${o.status}</span></td>
-                    <td class="px-3 py-3"><button onclick="viewOrderDetails('${o.id}')" class="text-pink-400 hover:underline">View Details</button></td>
-                </tr>
-            `).join('') || `<tr><td colspan="5" class="p-4 text-center text-slate-500">No orders yet</td></tr>`;
+            const recentOrders = [
+                ...orders.map(order => ({
+                    source: 'Instagram',
+                    customer: order.igHandle || order.customerName || order.customer || '—',
+                    date: order.date || '—',
+                    timestamp: new Date(order.date || 0).getTime() || 0,
+                    itemCount: Array.isArray(order.items) ? order.items.length : 0,
+                    total: Number(order.total || 0),
+                    status: order.status || 'Pending',
+                    id: order.id
+                })),
+                ...onlineOrders.map(order => ({
+                    source: 'Online',
+                    customer: order.customer_name || '—',
+                    date: onlineOrderDate(order.created_at),
+                    timestamp: new Date(order.created_at || 0).getTime() || 0,
+                    itemCount: Array.isArray(order.items) ? order.items.length : 0,
+                    total: Number(order.total || 0),
+                    status: order.status || 'Pending',
+                    id: order.id
+                }))
+            ].sort((a, b) => b.timestamp - a.timestamp).slice(0, 5);
+
+            tbody.innerHTML = recentOrders.map(order => {
+                const isOnline = order.source === 'Online';
+                const sourceBadge = isOnline
+                    ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400">Online</span>'
+                    : '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-400">Instagram</span>';
+                const action = isOnline
+                    ? '<button onclick="switchTab(\'online-orders\')" class="text-pink-400 hover:underline">View</button>'
+                    : '<button onclick="viewOrderDetails(\'' + onlineOrderEscape(order.id) + '\')" class="text-pink-400 hover:underline">View</button>';
+                return '<tr class="hover:bg-slate-800/40 transition">' +
+                    '<td class="px-3 py-3 font-semibold text-white">' + onlineOrderEscape(order.customer) + '<div class="text-[10px] text-slate-400 font-normal">' + onlineOrderEscape(order.date) + '</div></td>' +
+                    '<td class="px-3 py-3">' + sourceBadge + '</td>' +
+                    '<td class="px-3 py-3 text-slate-300">' + order.itemCount + ' item(s)</td>' +
+                    '<td class="px-3 py-3 font-bold text-white">MVR ' + order.total.toFixed(2) + '</td>' +
+                    '<td class="px-3 py-3"><span class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-400">' + onlineOrderEscape(order.status) + '</span></td>' +
+                    '<td class="px-3 py-3">' + action + '</td>' +
+                    '</tr>';
+            }).join('') || '<tr><td colspan="6" class="p-4 text-center text-slate-500">No orders yet</td></tr>';
 
             const lowStockItems = products.filter(p => p.stock <= 5);
             const alertBox = document.getElementById('dashboard-stock-alerts');
@@ -2285,6 +2318,7 @@
           if (title) title.textContent = names[id];
           try {
             if (id === 'dashboard' && typeof window.renderDashboard === 'function') window.renderDashboard();
+            if (id === 'dashboard' && typeof window.loadOnlineOrders === 'function') window.loadOnlineOrders();
             if (id === 'inventory' && typeof window.renderInventory === 'function') window.renderInventory();
             if (id === 'orders' && typeof window.renderOrders === 'function') window.renderOrders();
             if (id === 'online-orders' && typeof window.loadOnlineOrders === 'function') window.loadOnlineOrders();
