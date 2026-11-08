@@ -754,7 +754,8 @@
                 connecting: ['Connecting', 'bg-slate-500'],
                 syncing: ['Syncing', 'bg-amber-400'],
                 connected: ['Synced', 'bg-emerald-400'],
-                offline: ['Offline', 'bg-rose-400']
+                offline: ['Offline', 'bg-rose-400'],
+                local: ['Local only', 'bg-slate-500']
             };
             const state = states[status] || states.connecting;
             label.textContent = state[0];
@@ -2161,13 +2162,25 @@
             document.getElementById('sidebar-backdrop').classList.add('hidden');
         });
 
-        // Fresh local-first startup: no login gate and no automatic writes to Supabase.
-        // Existing browser data is retained; new installations start with empty business records.
-        document.addEventListener('DOMContentLoaded', () => {
+        // Start with the existing local data, then reconnect to the shared cloud
+        // workspace automatically when this browser has a previously verified access code.
+        document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('cloud-auth-gate')?.classList.add('hidden');
-            setCloudSyncIndicator('local');
             refreshAll();
             renderInbox();
+            if (cloudToken && navigator.onLine) {
+                setCloudSyncIndicator('connecting');
+                try {
+                    await connectStyveCloud(cloudToken);
+                } catch (error) {
+                    console.error('Styve automatic cloud connection failed:', error);
+                    setCloudSyncIndicator(navigator.onLine ? 'offline' : 'offline');
+                    const indicator = document.getElementById('cloud-sync-indicator');
+                    if (indicator) indicator.title = 'Styve cloud sync unavailable: ' + (error?.message || 'Connection failed');
+                }
+            } else {
+                setCloudSyncIndicator(navigator.onLine ? 'local' : 'offline');
+            }
         });
     </script>
 
