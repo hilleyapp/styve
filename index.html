@@ -513,6 +513,10 @@
                 <div class="flex items-center space-x-3"><i class="fa-solid fa-bag-shopping w-5 text-center text-indigo-500"></i><span>Sales & Orders</span></div>
                 <span id="pending-orders-badge" class="bg-indigo-500/20 text-indigo-400 text-xs font-bold px-2 py-0.5 rounded-full border border-indigo-500/30">0</span>
             </button>
+            <button onclick="switchTab('online-orders')" id="nav-online-orders" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800/60 transition">
+                <div class="flex items-center space-x-3"><i class="fa-solid fa-globe w-5 text-center text-emerald-500"></i><span>Online Orders</span></div>
+                <span id="online-orders-badge" class="hidden bg-emerald-500/20 text-emerald-600 text-xs font-bold px-2 py-0.5 rounded-full">0</span>
+            </button>
             <button onclick="switchTab('inbox')" id="nav-inbox" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800/60 transition">
                 <div class="flex items-center space-x-3"><i class="fa-brands fa-instagram w-5 text-center text-rose-500 text-lg"></i><span>IG Order Inbox</span></div>
                 <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
@@ -677,6 +681,26 @@
                             <tbody id="orders-table-body" class="divide-y divide-slate-800"></tbody>
                         </table>
                     </div>
+                </div>
+            </section>
+
+            <!-- ONLINE STOREFRONT ORDERS: separate from existing Sales & Orders -->
+            <section id="tab-online-orders" class="tab-content hidden space-y-6">
+                <div class="flex flex-col sm:flex-row gap-3 justify-between sm:items-center bg-slate-900 p-4 rounded-2xl border border-slate-800 shadow-sm">
+                    <div><h3 class="font-bold text-white">Customer website orders</h3><p class="text-xs text-slate-400">Orders placed at shopstyve.pages.dev · separate from Instagram and manually recorded sales</p></div>
+                    <div class="flex gap-2">
+                      <input id="online-order-search" oninput="renderOnlineOrders()" placeholder="Search order, customer or phone" class="min-w-0 flex-1 sm:w-72 px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-sm">
+                      <button onclick="loadOnlineOrders()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl"><i class="fa-solid fa-rotate mr-1"></i>Refresh</button>
+                    </div>
+                </div>
+                <div id="online-orders-status" role="status" class="text-xs text-slate-500">Connect Styve to load website orders.</div>
+                <div class="bg-slate-900 rounded-2xl border border-slate-800 shadow-sm overflow-hidden">
+                  <div class="overflow-x-auto">
+                    <table class="w-full min-w-[850px] text-left text-sm">
+                      <thead class="bg-slate-800/80 text-slate-400 text-[11px] uppercase"><tr><th class="p-4">Order</th><th class="p-4">Customer</th><th class="p-4">Items</th><th class="p-4">Payment</th><th class="p-4">Total</th><th class="p-4">Status</th></tr></thead>
+                      <tbody id="online-orders-tbody" class="divide-y divide-slate-800"><tr><td colspan="6" class="p-8 text-center text-slate-500">Connect Styve to view online orders.</td></tr></tbody>
+                    </table>
+                  </div>
                 </div>
             </section>
 
@@ -1230,7 +1254,7 @@
         }
 
         function switchTab(tabId) {
-            const allowedTabs = ['dashboard', 'inventory', 'orders', 'inbox', 'analytics'];
+            const allowedTabs = ['dashboard', 'inventory', 'orders', 'online-orders', 'inbox', 'analytics'];
             if (!allowedTabs.includes(tabId)) return;
             document.querySelectorAll('.tab-content').forEach(el => {
                 el.classList.add('hidden');
@@ -1248,10 +1272,11 @@
             nav.classList.add('bg-slate-800', 'text-white', 'active');
             nav.setAttribute('aria-current', 'page');
             const title = document.getElementById('page-title');
-            if (title) title.textContent = ({dashboard:'Dashboard Overview',inventory:'Stock & Inventory',orders:'Sales & Orders',inbox:'Instagram Order Inbox',analytics:'Analytics & Profit'})[tabId];
+            if (title) title.textContent = ({dashboard:'Dashboard Overview',inventory:'Stock & Inventory',orders:'Sales & Orders','online-orders':'Online Orders',inbox:'Instagram Order Inbox',analytics:'Analytics & Profit'})[tabId];
             if (tabId === 'dashboard') renderDashboard();
             if (tabId === 'inventory') renderInventory();
             if (tabId === 'orders') renderOrders();
+            if (tabId === 'online-orders') loadOnlineOrders();
             if (tabId === 'inbox') renderInbox();
             if (tabId === 'analytics') renderAnalytics();
             document.querySelector('main')?.scrollTo({top:0,behavior:'auto'});
@@ -1259,6 +1284,67 @@
             document.getElementById('sidebar-backdrop')?.classList.add('hidden');
         }
         window.switchTab = switchTab;
+
+        let onlineOrders = [];
+        const onlineOrderStatuses = ['Pending','Confirmed','Processing','Ready','Dispatched','Delivered','Cancelled'];
+        function onlineOrderEscape(value) {
+            return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+        }
+        function onlineOrderDate(value) {
+            const date = new Date(value);
+            return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString();
+        }
+        async function loadOnlineOrders() {
+            const status = document.getElementById('online-orders-status');
+            const tbody = document.getElementById('online-orders-tbody');
+            if (!cloudToken) { status.textContent = 'Connect Styve with your shared access code to view online orders.'; return; }
+            status.textContent = 'Loading website orders…';
+            try {
+                const result = await styveCloudRequest('list_online_orders');
+                onlineOrders = Array.isArray(result.orders) ? result.orders : [];
+                renderOnlineOrders();
+                const pending = onlineOrders.filter(order => order.status === 'Pending').length;
+                const badge = document.getElementById('online-orders-badge');
+                badge.textContent = pending; badge.classList.toggle('hidden', pending === 0);
+                status.textContent = onlineOrders.length + ' website order(s) · ' + pending + ' pending';
+            } catch (error) {
+                console.error('Online orders load failed:', error);
+                status.textContent = error.message || 'Could not load website orders.';
+                tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-rose-500">Unable to load online orders. Please refresh.</td></tr>';
+            }
+        }
+        function renderOnlineOrders() {
+            const tbody = document.getElementById('online-orders-tbody');
+            if (!tbody) return;
+            const search = (document.getElementById('online-order-search')?.value || '').trim().toLowerCase();
+            const filtered = onlineOrders.filter(order => [order.order_number,order.customer_name,order.phone,order.address].some(value => String(value || '').toLowerCase().includes(search)));
+            if (!filtered.length) {
+                tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-500">' + (onlineOrders.length ? 'No matching website orders.' : 'No website orders yet.') + '</td></tr>';
+                return;
+            }
+            tbody.innerHTML = filtered.map(order => {
+                const items = Array.isArray(order.items) ? order.items.map(item => '<div class="mb-1">' + onlineOrderEscape(item.name || 'Product') + ' <strong class="text-emerald-600">×' + Number(item.qty || 0) + '</strong><div class="text-[11px] text-slate-500">MVR ' + Number(item.price || 0).toFixed(2) + ' each</div></div>').join('') : '—';
+                const options = onlineOrderStatuses.map(value => '<option value="' + value + '"' + (order.status === value ? ' selected' : '') + '>' + value + '</option>').join('');
+                return '<tr class="align-top hover:bg-slate-800/30"><td class="p-4"><div class="font-mono font-bold text-emerald-600">' + onlineOrderEscape(order.order_number) + '</div><div class="text-[11px] text-slate-500 mt-1">' + onlineOrderEscape(onlineOrderDate(order.created_at)) + '</div></td><td class="p-4"><div class="font-semibold text-white">' + onlineOrderEscape(order.customer_name) + '</div><a class="text-xs text-emerald-600" href="tel:' + onlineOrderEscape(order.phone) + '">' + onlineOrderEscape(order.phone) + '</a><div class="text-xs text-slate-500 mt-1 whitespace-normal max-w-[220px]">' + onlineOrderEscape(order.address) + '</div></td><td class="p-4 text-xs text-slate-300 whitespace-normal min-w-[190px]">' + items + '</td><td class="p-4 text-xs text-slate-400">' + (order.payment_method === 'bank_transfer' ? 'Bank transfer' : 'Cash on delivery') + '</td><td class="p-4 font-bold text-white whitespace-nowrap">MVR ' + Number(order.total || 0).toFixed(2) + '</td><td class="p-4"><select aria-label="Website order status" onchange="updateOnlineOrderStatus(\'' + onlineOrderEscape(order.id) + '\',this.value)" class="rounded-lg border border-slate-700 bg-slate-950 text-slate-100 px-2 py-2 text-xs font-semibold">' + options + '</select></td></tr>';
+            }).join('');
+        }
+        async function updateOnlineOrderStatus(orderId, status) {
+            if (!onlineOrderStatuses.includes(status)) return;
+            try {
+                await styveCloudRequest('update_online_order_status', { orderId, status });
+                const order = onlineOrders.find(item => item.id === orderId);
+                if (order) order.status = status;
+                renderOnlineOrders();
+                const pending = onlineOrders.filter(item => item.status === 'Pending').length;
+                const badge = document.getElementById('online-orders-badge');
+                badge.textContent = pending; badge.classList.toggle('hidden', pending === 0);
+                document.getElementById('online-orders-status').textContent = 'Order status saved successfully.';
+                toast('Website order ' + (order?.order_number || '') + ' updated to ' + status + '.');
+            } catch (error) { toast(error.message || 'Could not update website order.'); loadOnlineOrders(); }
+        }
+        window.loadOnlineOrders = loadOnlineOrders;
+        window.renderOnlineOrders = renderOnlineOrders;
+        window.updateOnlineOrderStatus = updateOnlineOrderStatus;
 
         function updateBadges() {
             const lowStockCount = products.filter(p => p.stock <= 5).length;
@@ -2153,7 +2239,8 @@
           inventory: 'Stock & Inventory',
           orders: 'Sales & Orders',
           inbox: 'Instagram Order Inbox',
-          analytics: 'Analytics & Profit'
+          analytics: 'Analytics & Profit',
+          'online-orders': 'Online Orders'
         };
         function closeMenu() {
           document.getElementById('sidebar')?.classList.add('-translate-x-full');
@@ -2178,6 +2265,7 @@
             if (id === 'dashboard' && typeof window.renderDashboard === 'function') window.renderDashboard();
             if (id === 'inventory' && typeof window.renderInventory === 'function') window.renderInventory();
             if (id === 'orders' && typeof window.renderOrders === 'function') window.renderOrders();
+            if (id === 'online-orders' && typeof window.loadOnlineOrders === 'function') window.loadOnlineOrders();
             if (id === 'inbox' && typeof window.renderInbox === 'function') window.renderInbox();
             if (id === 'analytics' && typeof window.renderAnalytics === 'function') window.renderAnalytics();
           } catch (err) { console.error('Styve tab render error:', err); }
