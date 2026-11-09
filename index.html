@@ -2278,20 +2278,43 @@
     </style>
 
     <script id="styve-mobile-view-toggle-touch-fallback">
-      // Route mobile view-toggle taps explicitly; stop the inline handler so each tap runs once.
-      document.addEventListener('click', event => {
-        if (!window.matchMedia('(max-width: 1023px)').matches) return;
-        const button = event.target.closest(
-          '#orders-grid-toggle, #orders-list-toggle, #online-orders-grid-toggle, #online-orders-list-toggle'
-        );
-        if (!button) return;
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        if (button.id === 'orders-grid-toggle') setOrdersView('grid');
-        else if (button.id === 'orders-list-toggle') setOrdersView('list');
-        else if (button.id === 'online-orders-grid-toggle') setOnlineOrdersView('grid');
-        else if (button.id === 'online-orders-list-toggle') setOnlineOrdersView('list');
-      }, true);
+      (() => {
+        const selectors = [
+          '#orders-grid-toggle', '#orders-list-toggle',
+          '#online-orders-grid-toggle', '#online-orders-list-toggle'
+        ];
+        const applyView = button => {
+          if (!button) return;
+          if (button.id === 'orders-grid-toggle') setOrdersView('grid');
+          else if (button.id === 'orders-list-toggle') setOrdersView('list');
+          else if (button.id === 'online-orders-grid-toggle') setOnlineOrdersView('grid');
+          else if (button.id === 'online-orders-list-toggle') setOnlineOrdersView('list');
+        };
+
+        // Bind directly to the controls after the page markup has loaded.
+        document.querySelectorAll(selectors.join(',')).forEach(button => {
+          button.style.position = 'relative';
+          button.style.zIndex = '30';
+          button.style.pointerEvents = 'auto';
+          button.style.touchAction = 'manipulation';
+          button.addEventListener('touchend', event => {
+            if (!window.matchMedia('(max-width: 1023px)').matches) return;
+            event.preventDefault();
+            event.stopPropagation();
+            applyView(button);
+          }, { passive: false });
+        });
+
+        // Keep delegated click support for mouse, keyboard and dynamically restored markup.
+        document.addEventListener('click', event => {
+          if (!window.matchMedia('(max-width: 1023px)').matches) return;
+          const button = event.target.closest(selectors.join(','));
+          if (!button) return;
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          applyView(button);
+        }, true);
+      })();
     </script>
 
 </body>
