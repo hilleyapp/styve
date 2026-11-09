@@ -1260,29 +1260,21 @@
         function sendOnlineOrderToDeliveryWhatsApp(id) {
             const order = onlineOrders.find(item => String(item.id) === String(id));
             if (!order) { toast('Online order not found'); return; }
-            const itemLines = (order.items || []).map(item =>
-                `• ${item.name || 'Product'} × ${Number(item.qty || 0)} — MVR ${(Number(item.price || 0) * Number(item.qty || 0)).toFixed(2)}`
-            );
             const created = order.created_at ? new Date(order.created_at) : null;
             const orderDate = created && !Number.isNaN(created.getTime()) ? created.toLocaleDateString() : '—';
             const payment = order.payment_method === 'bank_transfer' ? 'Bank transfer' : (order.payment_method || '—');
-            const message = [
-                '🚚 *STYVE — NEW DELIVERY ORDER*',
-                '',
-                `Order: ${order.order_number || order.id || '—'}`,
-                `Date: ${orderDate}`,
-                `Customer: ${order.customer_name || '—'}`,
-                `Phone: ${order.phone || '—'}`,
-                `Delivery address: ${order.address || '—'}`,
-                '',
-                '*Items:*',
-                ...(itemLines.length ? itemLines : ['• No items recorded']),
-                '',
-                `*TOTAL: MVR ${Number(order.total || 0).toFixed(2)}*`,
-                `Payment: ${payment}`,
-                '',
-                'Please arrange delivery and update the team.'
-            ].join('\\n');
+            // Reuse the exact message template used by Sales & Orders, mapping storefront fields.
+            const message = buildDeliveryWhatsAppMessage({
+                id: order.id,
+                orderNumber: order.order_number || order.id,
+                date: orderDate,
+                igHandle: order.customer_name || '—',
+                phone: order.phone || '—',
+                address: order.address || '—',
+                items: order.items || [],
+                total: order.total,
+                payment
+            });
             const url = 'https://wa.me/?text=' + encodeURIComponent(message);
             const popup = window.open(url, '_blank', 'noopener,noreferrer');
             if (!popup) { toast('WhatsApp could not be opened. Allow pop-ups and try again.'); return; }
