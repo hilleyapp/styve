@@ -1751,7 +1751,7 @@
             orderCart = [];
             renderOrderCart();
             const sel = document.getElementById('order-product-select');
-            sel.innerHTML = products.map(p => `<option value="${p.id}">${p.name} (MVR ${p.price} | Stock: ${p.stock})</option>`).join('');
+            sel.innerHTML = products.map(p => `<option value="${p.id}">${p.sku ? p.sku + ' · ' : ''}${p.name} (MVR ${p.price} | Stock: ${p.stock})</option>`).join('');
             document.getElementById('order-form').reset();
             document.getElementById('order-modal').classList.remove('hidden');
         }
@@ -1765,7 +1765,7 @@
             if (!prod) return;
 
             const existing = orderCart.find(i => i.productId === pId);
-            if (existing) { existing.qty += qty; } else { orderCart.push({ productId: prod.id, name: prod.name, qty, price: prod.price }); }
+            if (existing) { existing.qty += qty; } else { orderCart.push({ productId: prod.id, sku: prod.sku || '', name: prod.name, qty, price: prod.price }); }
             renderOrderCart();
         }
 
@@ -1777,7 +1777,7 @@
             } else {
                 container.innerHTML = orderCart.map((item) => {
                     total += item.price * item.qty;
-                    return `<div class="flex justify-between items-center text-xs bg-slate-900 p-2 rounded-lg border border-slate-800 text-slate-200"><span>${item.name} <strong class="text-pink-400">x${item.qty}</strong></span><span class="font-bold">MVR ${(item.price * item.qty).toFixed(2)}</span></div>`;
+                    return `<div class="flex justify-between items-center text-xs bg-slate-900 p-2 rounded-lg border border-slate-800 text-slate-200 gap-3"><span class="min-w-0"><span class="block font-semibold">${item.name} <strong class="text-pink-400">x${item.qty}</strong></span>${item.sku ? `<span class="block text-[10px] text-slate-400 mt-0.5">SKU: ${item.sku}</span>` : ''}</span><span class="font-bold whitespace-nowrap">MVR ${(item.price * item.qty).toFixed(2)}</span></div>`;
                 }).join('');
             }
             document.getElementById('order-grand-total').textContent = `MVR ${total.toFixed(2)}`;
