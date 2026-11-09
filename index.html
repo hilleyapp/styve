@@ -314,7 +314,51 @@
         #orders-list-view tbody td:last-child > div { gap:.35rem; }
       }
     </style>
-    </head>
+    
+    <style id="styve-mobile-view-toggle-tap-fix">
+      /* Keep the view controls above nearby mobile layout layers and give them a reliable touch target. */
+      @media (max-width:1023px) {
+        #tab-orders > :first-child,
+        #tab-orders > :first-child > div,
+        #tab-online-orders > :first-child,
+        #tab-online-orders > :first-child > div,
+        #orders-grid-toggle,
+        #orders-list-toggle,
+        #online-orders-grid-toggle,
+        #online-orders-list-toggle {
+          position:relative !important;
+          z-index:12 !important;
+          pointer-events:auto !important;
+        }
+        #orders-grid-toggle,
+        #orders-list-toggle,
+        #online-orders-grid-toggle,
+        #online-orders-list-toggle {
+          min-height:42px;
+          min-width:54px;
+          touch-action:manipulation;
+          -webkit-tap-highlight-color:transparent;
+        }
+      }
+      @media (max-width:640px) {
+        #online-orders-mobile-cards.online-orders-list-mode article {
+          padding:.7rem .85rem !important;
+          border-radius:.75rem !important;
+        }
+        #online-orders-mobile-cards.online-orders-list-mode article > div {
+          padding-top:.55rem !important;
+          padding-bottom:.55rem !important;
+        }
+        #online-orders-mobile-cards.online-orders-list-mode article > div:nth-child(3) {
+          display:none;
+        }
+        #online-orders-mobile-cards.online-orders-list-mode article > button {
+          margin-top:.5rem !important;
+        }
+      }
+    </style>
+
+</head>
 <body class="bg-slate-950 text-slate-100 min-h-full">
 
     <!-- Mobile Sidebar Backdrop -->
@@ -1194,6 +1238,7 @@
             const mobile = window.matchMedia('(max-width: 640px)').matches;
             if (table) table.style.display = view === 'list' && !mobile ? 'block' : 'none';
             if (cards) {
+                cards.classList.toggle('online-orders-list-mode', view === 'list');
                 cards.style.display = view === 'grid' || mobile ? 'grid' : 'none';
                 cards.style.gridTemplateColumns = view === 'grid' ? 'repeat(auto-fit,minmax(min(100%,320px),1fr))' : 'minmax(0,1fr)';
             }
@@ -2231,5 +2276,23 @@
         #sidebar-backdrop { z-index:55 !important; }
       }
     </style>
+
+    <script id="styve-mobile-view-toggle-touch-fallback">
+      // Route mobile view-toggle taps explicitly; stop the inline handler so each tap runs once.
+      document.addEventListener('click', event => {
+        if (!window.matchMedia('(max-width: 1023px)').matches) return;
+        const button = event.target.closest(
+          '#orders-grid-toggle, #orders-list-toggle, #online-orders-grid-toggle, #online-orders-list-toggle'
+        );
+        if (!button) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        if (button.id === 'orders-grid-toggle') setOrdersView('grid');
+        else if (button.id === 'orders-list-toggle') setOrdersView('list');
+        else if (button.id === 'online-orders-grid-toggle') setOnlineOrdersView('grid');
+        else if (button.id === 'online-orders-list-toggle') setOnlineOrdersView('list');
+      }, true);
+    </script>
+
 </body>
 </html>
