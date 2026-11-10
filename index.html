@@ -751,7 +751,11 @@
                     <div><label class="block text-slate-400 mb-1 text-xs font-semibold">Instagram Handle</label><input type="text" id="order-ig" required placeholder="@username" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500"></div>
                     <div><label class="block text-slate-400 mb-1 text-xs font-semibold">Phone Number</label><input type="text" id="order-phone" required placeholder="777XXXX" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500"></div>
                 </div>
-                <div><label class="block text-slate-400 mb-1 text-xs font-semibold">Delivery Address / Notes</label><input type="text" id="order-address" required placeholder="e.g. H. Sunshine, Malé" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500"></div>
+                <div class="space-y-3">
+                    <div><label for="order-delivery-type" class="block text-slate-400 mb-1 text-xs font-semibold">Delivery To</label><select id="order-delivery-type" onchange="toggleOrderDeliveryFields()" required class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500"><option value="Address">Address</option><option value="Boat/Ferry">Boat/Ferry</option></select></div>
+                    <div id="order-address-wrap"><label for="order-address" class="block text-slate-400 mb-1 text-xs font-semibold">Delivery Address</label><input type="text" id="order-address" required placeholder="e.g. H. Sunshine, Malé" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500"></div>
+                    <div id="order-boat-ferry-wrap" class="hidden"><label for="order-boat-ferry-details" class="block text-slate-400 mb-1 text-xs font-semibold">Boat/Ferry Details</label><textarea id="order-boat-ferry-details" rows="3" placeholder="Enter boat/ferry name, departure time, contact or other handover details" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500"></textarea></div>
+                </div>
 
                 <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-3">
                     <label class="block text-slate-300 font-bold text-xs">Add Products to Cart</label>
@@ -1322,7 +1326,7 @@
                     <div class="bg-slate-950 rounded-xl p-3"><p class="text-xs text-slate-400">Date</p><p class="text-white font-semibold">${order.date || '—'}</p></div>
                     <div class="bg-slate-950 rounded-xl p-3"><p class="text-xs text-slate-400">Customer</p><p class="text-pink-400 font-semibold">${order.igHandle || '—'}</p></div>
                     <div class="bg-slate-950 rounded-xl p-3"><p class="text-xs text-slate-400">Phone</p><p class="text-white font-semibold">${order.phone || '—'}</p></div>
-                    <div class="bg-slate-950 rounded-xl p-3 col-span-2"><p class="text-xs text-slate-400">Delivery address / Notes</p><p class="text-white font-semibold">${order.address || '—'}</p></div>
+                    <div class="bg-slate-950 rounded-xl p-3 col-span-2"><p class="text-xs text-slate-400">Delivery to · ${order.deliveryType || 'Address'}</p><p class="text-white font-semibold whitespace-pre-wrap">${order.deliveryType === 'Boat/Ferry' ? (order.boatFerryDetails || '—') : (order.address || '—')}</p></div>
                 </div>
                 <div><div class="flex justify-between items-center mb-2"><h4 class="text-white font-bold text-sm">Items</h4><span class="text-xs text-slate-400">${(order.items || []).length} item(s)</span></div>${rows}</div>
                 <div class="flex justify-between items-center"><span class="text-slate-400 text-sm">Order total</span><span class="text-white font-bold text-lg">MVR ${Number(order.total || 0).toFixed(2)}</span></div>
@@ -1567,7 +1571,7 @@
                 ${o.deliverySentAt ? '<span class="text-[10px] text-emerald-600 font-semibold whitespace-nowrap"><i class="fa-solid fa-check mr-1"></i>Sent</span>' : `<button onclick="markOrderDeliverySent('${esc(o.id)}')" class="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[10px] font-semibold whitespace-nowrap">Mark sent</button>`}
                 <button onclick="deleteOrder('${esc(o.id)}')" class="text-rose-500 hover:text-rose-700 transition px-1" title="Delete order"><i class="fa-solid fa-trash"></i></button>
             </div>`;
-            const customerMarkup = o => `<div class="min-w-0">${o.customerName ? `<div class="font-semibold text-slate-800 break-words">${esc(o.customerName)}</div>` : ''}<div class="font-bold text-pink-600 break-words">${esc(o.igHandle || 'Instagram customer')}</div><div class="text-xs text-slate-500 break-words">${esc(o.phone || '')}</div><div class="text-xs text-slate-500 break-words">${esc(o.address || '')}</div></div>`;
+            const customerMarkup = o => `<div class="min-w-0">${o.customerName ? `<div class="font-semibold text-slate-800 break-words">${esc(o.customerName)}</div>` : ''}<div class="font-bold text-pink-600 break-words">${esc(o.igHandle || 'Instagram customer')}</div><div class="text-xs text-slate-500 break-words">${esc(o.phone || '')}</div><div class="text-xs text-slate-500 break-words">${esc(o.deliveryType || 'Address')}</div><div class="text-xs text-slate-500 break-words">${esc(o.deliveryType === 'Boat/Ferry' ? (o.boatFerryDetails || '—') : (o.address || ''))}</div></div>`;
 
             tbody.innerHTML = filtered.map(o => `
                 <tr class="hover:bg-slate-50 transition">
@@ -1630,7 +1634,10 @@
                 `Date: ${order.date || '—'}`,
                 `Customer: ${order.igHandle || '—'}`,
                 `Phone: ${order.phone || '—'}`,
-                `Delivery address: ${order.address || '—'}`,
+                `Delivery to: ${order.deliveryType || 'Address'}`,
+                ...(order.deliveryType === 'Boat/Ferry'
+                    ? [`Boat/Ferry details: ${order.boatFerryDetails || '—'}`]
+                    : [`Delivery address: ${order.address || '—'}`]),
                 '',
                 '*Items:*',
                 ...(itemLines.length ? itemLines : ['• No items recorded']),
@@ -1745,10 +1752,24 @@
             const sel = document.getElementById('order-product-select');
             sel.innerHTML = products.map(p => `<option value="${p.id}">${p.sku ? p.sku + ' · ' : ''}${p.name} (MVR ${p.price} | Stock: ${p.stock})</option>`).join('');
             document.getElementById('order-form').reset();
+            toggleOrderDeliveryFields();
             document.getElementById('order-modal').classList.remove('hidden');
         }
 
         function closeOrderModal() { document.getElementById('order-modal').classList.add('hidden'); }
+
+        function toggleOrderDeliveryFields() {
+            const type = document.getElementById('order-delivery-type')?.value || 'Address';
+            const addressWrap = document.getElementById('order-address-wrap');
+            const boatWrap = document.getElementById('order-boat-ferry-wrap');
+            const address = document.getElementById('order-address');
+            const boatDetails = document.getElementById('order-boat-ferry-details');
+            const isAddress = type === 'Address';
+            addressWrap?.classList.toggle('hidden', !isAddress);
+            boatWrap?.classList.toggle('hidden', isAddress);
+            if (address) { address.required = isAddress; if (!isAddress) address.value = ''; }
+            if (boatDetails) { boatDetails.required = !isAddress; if (isAddress) boatDetails.value = ''; }
+        }
 
         function addItemToOrderCart() {
             const pId = parseInt(document.getElementById('order-product-select').value);
@@ -1787,7 +1808,9 @@
                 customerName: document.getElementById('order-customer-name').value.trim(),
                 igHandle: document.getElementById('order-ig').value,
                 phone: document.getElementById('order-phone').value,
-                address: document.getElementById('order-address').value,
+                deliveryType: document.getElementById('order-delivery-type').value,
+                address: document.getElementById('order-delivery-type').value === 'Address' ? document.getElementById('order-address').value.trim() : '',
+                boatFerryDetails: document.getElementById('order-delivery-type').value === 'Boat/Ferry' ? document.getElementById('order-boat-ferry-details').value.trim() : '',
                 items: orderCart.map(item => ({ ...item, cost: Number(item.cost ?? products.find(p => p.id === item.productId)?.cost ?? 0) })),
                 total: orderCart.reduce((s, i) => s + (i.price * i.qty), 0),
                 status: document.getElementById('order-status').value,
