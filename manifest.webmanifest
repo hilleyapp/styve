@@ -12,7 +12,7 @@
   "theme_color": "#172238",
   "icons": [
     {
-      "src": "./assets/styve-logo.png",
+      "src": "./assets/styve-logo.png?v=3",
       "type": "image/png",
       "purpose": "any"
     }
