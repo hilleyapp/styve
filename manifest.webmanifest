@@ -1,0 +1,27 @@
+{
+  "id": "./",
+  "name": "Styve Business Suite",
+  "short_name": "Styve",
+  "description": "Manage Styve inventory, sales, orders and business operations.",
+  "lang": "en",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f5f6fa",
+  "theme_color": "#172238",
+  "icons": [
+    {
+      "src": "./assets/styve-pwa-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "./assets/styve-logo.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
