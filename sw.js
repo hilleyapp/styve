@@ -1,8 +1,9 @@
-const CACHE_NAME = 'styve-business-pwa-v2';
+const CACHE_NAME = 'styve-business-pwa-v3';
 const APP_SHELL = [
   './',
   './index.html',
   './assets/styve-logo.png',
+  './assets/styve-apple-touch-icon.png',
   './assets/styve-logo.svg',
   './assets/styve-pwa-icon.svg'
 ];
