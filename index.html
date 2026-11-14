@@ -6,6 +6,12 @@
     <meta name="theme-color" content="#0f172a">
     <title>Styve - Business Suite</title>
     <link rel="icon" type="image/png" href="./assets/styve-logo.png">
+    <link rel="manifest" href="./manifest.webmanifest">
+    <link rel="apple-touch-icon" href="./assets/styve-logo.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Styve">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="Styve">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -2341,5 +2347,14 @@
       })();
     </script>
 
+
+    <script id="styve-pwa-registration">
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js', { scope: './' })
+            .catch(error => console.warn('Styve offline support could not be enabled:', error));
+        });
+      }
+    </script>
 </body>
 </html>
