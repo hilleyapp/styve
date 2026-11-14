@@ -660,6 +660,18 @@
         </div>
     </div>
 
+    <div id="cloud-access-code-gate" class="hidden fixed inset-0 z-[110] bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
+            <div class="flex items-center gap-3 mb-5"><img src="./assets/styve-logo.png" alt="Styve" class="w-12 h-12 rounded-xl"><div><h1 class="text-xl font-extrabold text-white">Connect Styve Cloud</h1><p class="text-xs text-slate-400">Enter your existing shared access code to load your shop data.</p></div></div>
+            <form id="cloud-access-code-form" class="space-y-3">
+                <label for="cloud-access-code" class="block text-xs font-semibold text-slate-300">Styve access code</label>
+                <input id="cloud-access-code" type="password" required autocomplete="off" autocapitalize="none" spellcheck="false" class="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-3 text-white" placeholder="Enter your existing access code">
+                <p id="cloud-access-code-status" class="text-xs text-slate-400" aria-live="polite">This connects this installed app to the same cloud workspace used by Safari.</p>
+                <button id="cloud-access-code-submit" type="submit" class="w-full rounded-xl bg-pink-600 px-4 py-3 text-sm font-bold text-white">Connect to Styve Cloud</button>
+            </form>
+        </div>
+    </div>
+
     <div id="cloud-auth-gate" class="hidden fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-4">
         <div class="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
             <div class="flex items-center gap-3 mb-5"><img src="./assets/styve-logo.png" alt="Styve" class="w-12 h-12 rounded-xl"><div><h1 class="text-xl font-extrabold text-white">Styve Cloud</h1><p class="text-xs text-slate-400">Sign in to sync your shop across devices</p></div></div>
@@ -885,6 +897,7 @@
             }
             cloudReady = true;
             document.getElementById('cloud-auth-gate')?.classList.add('hidden');
+            document.getElementById('cloud-access-code-gate')?.classList.add('hidden');
             setCloudSyncIndicator('connected');
             if (cloudPollingTimer) clearInterval(cloudPollingTimer);
             cloudPollingTimer = setInterval(pollCloudState, 5000);
@@ -2237,24 +2250,48 @@
             document.getElementById('sidebar-backdrop').classList.add('hidden');
         });
 
-        // Start with the existing local data, then reconnect to the shared cloud
-        // workspace automatically when this browser has a previously verified access code.
+        // Each installed PWA has its own device storage. Ask for the existing shared
+        // access code when this installation has not connected before.
         document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('cloud-auth-gate')?.classList.add('hidden');
             refreshAll();
             renderInbox();
+            const accessGate = document.getElementById('cloud-access-code-gate');
+            const accessForm = document.getElementById('cloud-access-code-form');
+            const accessInput = document.getElementById('cloud-access-code');
+            const accessStatus = document.getElementById('cloud-access-code-status');
+            accessForm?.addEventListener('submit', async event => {
+                event.preventDefault();
+                const enteredCode = accessInput?.value?.trim() || '';
+                if (!enteredCode) return;
+                const submit = document.getElementById('cloud-access-code-submit');
+                if (submit) { submit.disabled = true; submit.textContent = 'Connecting…'; }
+                if (accessStatus) { accessStatus.textContent = 'Verifying access code and loading your cloud data…'; accessStatus.className = 'text-xs text-slate-400'; }
+                try {
+                    await connectStyveCloud(enteredCode);
+                    if (accessInput) accessInput.value = '';
+                } catch (error) {
+                    console.error('Styve cloud connection failed:', error);
+                    if (accessStatus) { accessStatus.textContent = error?.message || 'Could not connect. Check the code and try again.'; accessStatus.className = 'text-xs text-rose-400'; }
+                    setCloudSyncIndicator(navigator.onLine ? 'offline' : 'offline');
+                } finally {
+                    if (submit) { submit.disabled = false; submit.textContent = 'Connect to Styve Cloud'; }
+                }
+            });
             if (cloudToken && navigator.onLine) {
                 setCloudSyncIndicator('connecting');
                 try {
                     await connectStyveCloud(cloudToken);
                 } catch (error) {
                     console.error('Styve automatic cloud connection failed:', error);
-                    setCloudSyncIndicator(navigator.onLine ? 'offline' : 'offline');
-                    const indicator = document.getElementById('cloud-sync-indicator');
-                    if (indicator) indicator.title = 'Styve cloud sync unavailable: ' + (error?.message || 'Connection failed');
+                    setCloudSyncIndicator('offline');
+                    if (accessStatus) { accessStatus.textContent = 'Saved access code could not connect: ' + (error?.message || 'Connection failed') + '. Enter your code again.'; accessStatus.className = 'text-xs text-rose-400'; }
+                    accessGate?.classList.remove('hidden');
                 }
             } else {
                 setCloudSyncIndicator(navigator.onLine ? 'local' : 'offline');
+                if (navigator.onLine) accessGate?.classList.remove('hidden');
+                else if (accessStatus) accessStatus.textContent = 'You are offline. Connect to the internet, then reopen Styve to sync your cloud data.';
             }
         });
     </script>
