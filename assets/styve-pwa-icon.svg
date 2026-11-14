@@ -1,20 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="104" fill="#ffffff"/>
-  <svg x="50" y="165" width="412" height="182" viewBox="0 0 420 240" preserveAspectRatio="xMidYMid meet">
-    <g fill="#b91c1c">
-      <ellipse cx="210" cy="17" rx="5" ry="10"/>
-      <ellipse cx="294" cy="34" rx="5" ry="10" transform="rotate(28 294 34)"/>
-      <ellipse cx="365" cy="91" rx="10" ry="5" transform="rotate(-30 365 91)"/>
-      <ellipse cx="391" cy="137" rx="10" ry="5"/>
-      <ellipse cx="364" cy="184" rx="10" ry="5" transform="rotate(30 364 184)"/>
-      <ellipse cx="294" cy="218" rx="5" ry="10" transform="rotate(-28 294 218)"/>
-      <ellipse cx="210" cy="228" rx="5" ry="10"/>
-      <ellipse cx="126" cy="218" rx="5" ry="10" transform="rotate(28 126 218)"/>
-      <ellipse cx="56" cy="184" rx="10" ry="5" transform="rotate(-30 56 184)"/>
-      <ellipse cx="29" cy="137" rx="10" ry="5"/>
-      <ellipse cx="56" cy="91" rx="10" ry="5" transform="rotate(30 56 91)"/>
-      <ellipse cx="126" cy="34" rx="5" ry="10" transform="rotate(-28 126 34)"/>
-    </g>
-    <text x="210" y="151" text-anchor="middle" font-family="sans-serif" font-size="105" font-weight="400" letter-spacing="1" fill="#090909">styve</text>
-  </svg>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <rect width="1024" height="1024" fill="#ffffff"/>
+  <image x="-316" y="105.5" width="1613" height="907" xlink:href="./styve-logo.png" preserveAspectRatio="none"/>
 </svg>
