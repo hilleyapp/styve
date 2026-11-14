@@ -1624,9 +1624,16 @@
             }
         }
         function buildDeliveryWhatsAppMessage(order) {
-            const itemLines = (order.items || []).map(item =>
-                `• ${item.name || 'Product'} × ${Number(item.qty || 0)} — MVR ${(Number(item.price || 0) * Number(item.qty || 0)).toFixed(2)}`
-            );
+            const itemLines = (order.items || []).map(item => {
+                const matchedProduct = (products || []).find(product =>
+                    (item.productId != null && String(product.id) === String(item.productId)) ||
+                    (item.product_id != null && String(product.id) === String(item.product_id)) ||
+                    (item.id != null && String(product.id) === String(item.id)) ||
+                    (item.name && String(product.name || '').trim().toLowerCase() === String(item.name).trim().toLowerCase())
+                );
+                const sku = item.sku || item.sku_code || matchedProduct?.sku || '—';
+                return `• ${item.name || 'Product'} (SKU: ${sku}) × ${Number(item.qty || 0)} — MVR ${(Number(item.price || 0) * Number(item.qty || 0)).toFixed(2)}`;
+            });
             return [
                 '🚚 *STYVE — NEW DELIVERY ORDER*',
                 '',
