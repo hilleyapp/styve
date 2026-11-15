@@ -1,4 +1,4 @@
-const CACHE_NAME="shopstyve-pwa-v3";
+const CACHE_NAME="shopstyve-pwa-v4";
 const SHELL=["./","./index.html","./manifest.webmanifest","./assets/styve-logo.png","./icons/shopstyve-192.png","./icons/shopstyve-512.png","./icons/apple-touch-icon.png"];
 self.addEventListener("install",event=>event.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting())));
 self.addEventListener("activate",event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith("shopstyve-pwa-")&&k!==CACHE_NAME).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
