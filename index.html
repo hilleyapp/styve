@@ -1684,7 +1684,7 @@
             const paid = isReceipt ? ((/paid|fully paid/i.test(String(order.payment || '')) || ['Paid','Sold','Shipped'].includes(order.status)) ? total : 0) : 0;
             const customer = order.customerName || order.igHandle || order.customer || 'Customer';
             const delivery = order.deliveryType === 'Boat/Ferry' ? (order.boatFerryDetails || '') : (order.address || '');
-            const clean = value => String(value ?? '').normalize('NFKD').replace(/[^\\x20-\\x7E]/g, '?');
+            const clean = value => String(value ?? '').normalize('NFKD').replace(/[^\x20-\x7E]/g, '?');
             const esc = value => clean(value).replaceAll(String.fromCharCode(92), String.fromCharCode(92,92)).replaceAll('(', String.fromCharCode(92)+'(').replaceAll(')', String.fromCharCode(92)+')');
             const lines = [
                 'STYVE', isReceipt ? 'PAYMENT RECEIPT' : 'INVOICE', number,
