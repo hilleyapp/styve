@@ -1649,7 +1649,7 @@
             if (!order) { toast('Order not found'); return; }
             const escDoc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
             const isReceipt = type === 'receipt';
-            const number = (isReceipt ? 'REC-' : 'INV-') + String(String(getOrderNumber(order)).match(/(\\d{4})$/)?.[1] || '0001');
+            const number = (isReceipt ? 'REC-' : 'INV-') + String(String(getOrderNumber(order)).match(/(\d{4})$/)?.[1] || '0001');
             const total = Number(order.total || 0);
             const paid = isReceipt ? ((/paid|fully paid/i.test(String(order.payment || '')) || ['Paid','Sold','Shipped'].includes(order.status)) ? total : 0) : null;
             const shipping = Number(order.shipping || order.shippingFee || 0);
