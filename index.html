@@ -1586,8 +1586,10 @@
             }).join('') || '<span class="text-slate-400 italic">No items</span>';
             const statusMarkup = o => `<select aria-label="Order status" onchange="updateOrderStatus('${esc(o.id)}', this.value)" class="max-w-full bg-slate-950 border border-slate-700 text-slate-100 rounded-lg px-2 py-1.5 text-xs font-semibold focus:outline-none">${statusOptions(o)}</select>`;
             const actionsMarkup = o => `<div class="flex items-center gap-2 flex-wrap">
-                <button onclick="printOrderDocument('${esc(o.id)}','invoice')" class="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold whitespace-nowrap"><i class="fa-solid fa-file-invoice mr-1"></i>Invoice</button>
-                <button onclick="printOrderDocument('${esc(o.id)}','receipt')" class="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg text-xs font-semibold whitespace-nowrap"><i class="fa-solid fa-receipt mr-1"></i>Receipt</button>
+                <button onclick="printOrderDocument('${esc(o.id)}','invoice','pdf')" class="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold whitespace-nowrap"><i class="fa-solid fa-file-pdf mr-1"></i>Invoice PDF</button>
+                <button onclick="printOrderDocument('${esc(o.id)}','invoice','jpeg')" class="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold whitespace-nowrap"><i class="fa-solid fa-image mr-1"></i>Invoice JPEG</button>
+                <button onclick="printOrderDocument('${esc(o.id)}','receipt','pdf')" class="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg text-xs font-semibold whitespace-nowrap"><i class="fa-solid fa-file-pdf mr-1"></i>Receipt PDF</button>
+                <button onclick="printOrderDocument('${esc(o.id)}','receipt','jpeg')" class="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg text-xs font-semibold whitespace-nowrap"><i class="fa-solid fa-image mr-1"></i>Receipt JPEG</button>
                 <button onclick="editOrder('${esc(o.id)}')" class="px-2.5 py-1.5 bg-sky-50 hover:bg-sky-100 text-sky-700 rounded-lg text-xs font-semibold whitespace-nowrap"><i class="fa-solid fa-pen-to-square mr-1"></i>Edit</button>
                 <button onclick="sendOrderToDeliveryWhatsApp('${esc(o.id)}')" class="px-2.5 py-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 rounded-lg text-xs font-semibold whitespace-nowrap"><i class="fa-brands fa-whatsapp mr-1"></i>${o.deliverySentAt ? 'Resend' : 'Send to Delivery'}</button>
                 ${o.deliverySentAt ? '<span class="text-[10px] text-emerald-600 font-semibold whitespace-nowrap"><i class="fa-solid fa-check mr-1"></i>Sent</span>' : `<button onclick="markOrderDeliverySent('${esc(o.id)}')" class="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[10px] font-semibold whitespace-nowrap">Mark sent</button>`}
@@ -1645,13 +1647,39 @@
                 activeButton.classList.add('bg-indigo-500', 'text-white', 'shadow-sm');
             }
         }
-        function printOrderDocument(id, type) {
-            // Mobile/PWA-safe PDF flow: generate the PDF in this app and invoke the
-            // native share sheet (which includes Save to Files and Print on iOS).
-            saveOrderPdf(id, type);
+        function printOrderDocument(id, type, format = 'pdf') {
+            // Generate a document in PDF or JPEG format and use the native share sheet where supported.
+            saveOrderPdf(id, type, format);
         }
 
-        async function saveOrderPdf(id,type){
+        let pdfJsLoadPromise = null;
+        function loadPdfJs() {
+            if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+            if (pdfJsLoadPromise) return pdfJsLoadPromise;
+            pdfJsLoadPromise = new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+                script.onload = () => {
+                    if (!window.pdfjsLib) return reject(new Error('PDF image converter did not load.'));
+                    window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                    resolve(window.pdfjsLib);
+                };
+                script.onerror = () => reject(new Error('Could not load the JPEG converter. Check your internet connection and try again.'));
+                document.head.appendChild(script);
+            });
+            return pdfJsLoadPromise;
+        }
+
+        async function shareOrDownloadDocument(blob, filename, title, mimeType) {
+            const file = new File([blob], filename, { type: mimeType });
+            if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
+                try { await navigator.share({ files: [file], title, text: title }); return; }
+                catch (error) { if (error && error.name === 'AbortError') return; }
+            }
+            downloadPdfBlob(blob, filename);
+        }
+
+        async function saveOrderPdf(id,type,format='pdf'){
 const o=orders.find(x=>String(x.id)===String(id));if(!o){toast('Order not found');return;}const rec=type==='receipt',num=(rec?'REC-':'INV-')+String(String(getOrderNumber(o)).match(/(\\d{4})$/)?.[1]||'0001'),ds=Array.isArray(o.invoiceDiscounts)?o.invoiceDiscounts:[],ship=Number(o.shipping||o.shippingFee||0);
 if(!rec){for(let i=0;i<(o.items||[]).length;i++){const it=o.items[i],gross=Number(it.qty||0)*Number(it.price||0),v=prompt('Discount for '+(it.name||'Product')+' (MVR):',Number(ds[i]||0).toFixed(2));if(v===null)return;const d=Number(v);if(!Number.isFinite(d)||d<0||d>gross){toast('Invalid discount amount');return;}ds[i]=d;}o.invoiceDiscounts=ds;saveState();}
 const rows=(o.items||[]).map((it,i)=>{const p=products.find(x=>String(x.id)===String(it.productId)),q=Number(it.qty||0),pr=Number(it.price||0),d=Math.min(q*pr,Math.max(0,Number(ds[i]||0)));return{name:it.name||'Product',sku:it.sku||it.sku_code||p?.sku||'-',q,pr,d,net:q*pr-d};}),sub=rows.reduce((a,x)=>a+x.q*x.pr,0),disc=rows.reduce((a,x)=>a+x.d,0),total=Math.max(0,sub-disc+ship),paid=rec&&(/paid|fully paid/i.test(String(o.payment||''))||['Paid','Sold','Shipped'].includes(o.status))?total:0;
@@ -1664,8 +1692,28 @@ r(42,670,528,48,'0.96 0.97 0.98');t(56,699,9,'BILL TO',true,'0.42 0.47 0.54');t(
 const top=del?616:642;r(42,top-22,528,22,'0.09 0.13 0.20');t(50,top-15,8,'ITEM / SKU',true,'1 1 1');t(330,top-15,8,'QTY',true,'1 1 1');t(365,top-15,8,'UNIT',true,'1 1 1');t(425,top-15,8,'DISCOUNT',true,'1 1 1');t(510,top-15,8,'NET',true,'1 1 1');let y=top-43;
 rows.forEach((x,i)=>{if(i%2===0)r(42,y-8,528,28,'0.97 0.98 0.99');t(50,y+5,9,x.name.slice(0,38),true);t(50,y-7,7,'SKU: '+x.sku.slice(0,40),false,'0.42 0.47 0.54');t(332,y,9,String(x.q));t(365,y,8,x.pr.toFixed(2));t(425,y,8,x.d.toFixed(2));t(510,y,8,x.net.toFixed(2));y-=30;});
 y=Math.min(y-8,top-48-rows.length*30);l(340,y+10,570,y+10);const totalRow=(label,val,bold=false)=>{t(365,y,9,label,bold);t(490,y,9,'MVR '+Number(val).toFixed(2),bold);y-=19;};totalRow('Subtotal',sub);if(disc)totalRow('Discount',-disc);if(ship)totalRow('Shipping',ship);l(355,y+7,570,y+7);y-=9;totalRow('TOTAL',total,true);if(rec){totalRow('Amount received',paid);totalRow('Balance due',Math.max(0,total-paid),true);}l(42,82,570,82);t(42,62,9,'Thank you for '+(rec?'your payment':'choosing Styve')+'.',true,'0.30 0.35 0.42');t(42,45,7,'STYVE | Official sales document',false,'0.55 0.59 0.64');
-const content=c.join('\n'),objs=['<< /Type /Catalog /Pages 2 0 R >>','<< /Type /Pages /Kids [3 0 R] /Count 1 >>','<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>','<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>','<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>','<< /Length '+content.length+' >>\nstream\n'+content+'\nendstream'];let pdf='%PDF-1.4\n',off=[0];objs.forEach((x,i)=>{off.push(pdf.length);pdf+=(i+1)+' 0 obj\n'+x+'\nendobj\n';});const xr=pdf.length;pdf+='xref\n0 '+(objs.length+1)+'\n0000000000 65535 f \n';for(let i=1;i<off.length;i++)pdf+=String(off[i]).padStart(10,'0')+' 00000 n \n';pdf+='trailer\n<< /Size '+(objs.length+1)+' /Root 1 0 R >>\nstartxref\n'+xr+'\n%%EOF';const blob=new Blob([pdf],{type:'application/pdf'}),filename=num+'.pdf',file=new File([blob],filename,{type:'application/pdf'});
-if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){navigator.share({files:[file],title:num,text:rec?'Styve payment receipt':'Styve invoice'}).catch(e=>{if(e&&e.name!=='AbortError')downloadPdfBlob(blob,filename);});}else downloadPdfBlob(blob,filename);
+const content=c.join('\n'),objs=['<< /Type /Catalog /Pages 2 0 R >>','<< /Type /Pages /Kids [3 0 R] /Count 1 >>','<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>','<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>','<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>','<< /Length '+content.length+' >>\nstream\n'+content+'\nendstream'];let pdf='%PDF-1.4\n',off=[0];objs.forEach((x,i)=>{off.push(pdf.length);pdf+=(i+1)+' 0 obj\n'+x+'\nendobj\n';});const xr=pdf.length;pdf+='xref\n0 '+(objs.length+1)+'\n0000000000 65535 f \n';for(let i=1;i<off.length;i++)pdf+=String(off[i]).padStart(10,'0')+' 00000 n \n';pdf+='trailer\n<< /Size '+(objs.length+1)+' /Root 1 0 R >>\nstartxref\n'+xr+'\n%%EOF';const pdfBlob=new Blob([pdf],{type:'application/pdf'});
+const documentTitle=rec?'Styve payment receipt':'Styve invoice';
+if(format==='jpeg'){
+    try {
+        const pdfjs=await loadPdfJs();
+        const data=new Uint8Array(await pdfBlob.arrayBuffer());
+        const loaded=await pdfjs.getDocument({data}).promise;
+        const page=await loaded.getPage(1);
+        const viewport=page.getViewport({scale:2.5});
+        const canvas=document.createElement('canvas');
+        canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);
+        const context=canvas.getContext('2d');
+        if(!context)throw new Error('JPEG export is not supported on this device.');
+        context.fillStyle='#ffffff';context.fillRect(0,0,canvas.width,canvas.height);
+        await page.render({canvasContext:context,viewport,background:'#ffffff'}).promise;
+        const jpegBlob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('Could not create JPEG image.')),'image/jpeg',0.94));
+        await shareOrDownloadDocument(jpegBlob,num+'.jpg',documentTitle+' (JPEG)','image/jpeg');
+        canvas.width=0;canvas.height=0;
+    } catch(error) { console.error('JPEG export failed:',error);toast(error.message||'Could not create JPEG. Please try again.'); }
+} else {
+    await shareOrDownloadDocument(pdfBlob,num+'.pdf',documentTitle,'application/pdf');
+}
 }
 
         function downloadPdfBlob(blob, filename) {
