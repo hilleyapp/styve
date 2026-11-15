@@ -1645,59 +1645,94 @@
             }
         }
         function printOrderDocument(id, type) {
+            // Mobile/PWA-safe PDF flow: generate the PDF in this app and invoke the
+            // native share sheet (which includes Save to Files and Print on iOS).
+            saveOrderPdf(id, type);
+        }
+
+        function saveOrderPdf(id, type) {
             const order = orders.find(item => String(item.id) === String(id));
             if (!order) { toast('Order not found'); return; }
-            // Open synchronously from the user's tap, before prompts or other work.
-            // Mobile Safari and installed PWAs often block popups opened after a prompt.
-            const win = window.open('', '_blank');
-            if (!win) { toast('Your browser blocked the document window. Allow pop-ups for Styve and try again.'); return; }
-            const escDoc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
             const isReceipt = type === 'receipt';
             const number = (isReceipt ? 'REC-' : 'INV-') + String(String(getOrderNumber(order)).match(/(\\d{4})$/)?.[1] || '0001');
             const shipping = Number(order.shipping || order.shippingFee || 0);
-            const invoiceDiscounts = Array.isArray(order.invoiceDiscounts) ? order.invoiceDiscounts : [];
-            // Ask for a fixed MVR discount on each invoice line. Existing values are prefilled.
+            const discounts = Array.isArray(order.invoiceDiscounts) ? order.invoiceDiscounts : [];
             if (!isReceipt) {
-                for (let index = 0; index < (order.items || []).length; index++) {
-                    const item = order.items[index];
-                    const lineGross = Number(item.qty || 0) * Number(item.price || 0);
-                    const current = Number(invoiceDiscounts[index] || 0);
-                    const entered = window.prompt('Discount amount for ' + (item.name || 'Product') + ' (MVR). Enter 0 for no discount:', current.toFixed(2));
-                    if (entered === null) { win.close(); return; }
+                for (let i = 0; i < (order.items || []).length; i++) {
+                    const item = order.items[i], gross = Number(item.qty || 0) * Number(item.price || 0);
+                    const entered = window.prompt('Discount for ' + (item.name || 'Product') + ' (MVR):', Number(discounts[i] || 0).toFixed(2));
+                    if (entered === null) return;
                     const discount = Number(entered);
-                    if (!Number.isFinite(discount) || discount < 0 || discount > lineGross) {
+                    if (!Number.isFinite(discount) || discount < 0 || discount > gross) {
                         toast('Discount must be between MVR 0.00 and the item line amount.');
-                        win.close();
                         return;
                     }
-                    invoiceDiscounts[index] = discount;
+                    discounts[i] = discount;
                 }
-                order.invoiceDiscounts = invoiceDiscounts;
+                order.invoiceDiscounts = discounts;
                 saveState();
             }
-            const itemsData = (order.items || []).map((item, index) => {
+            const rows = (order.items || []).map((item, i) => {
                 const product = products.find(p => String(p.id) === String(item.productId));
-                const sku = item.sku || item.sku_code || product?.sku || '—';
-                const qty = Number(item.qty || 0), price = Number(item.price || 0);
-                const amount = qty * price;
-                const discount = Math.min(amount, Math.max(0, Number(invoiceDiscounts[index] || 0)));
-                return { name:item.name || 'Product', sku, qty, price, amount, discount, net:amount-discount };
+                const qty = Number(item.qty || 0), price = Number(item.price || 0), amount = qty * price;
+                const discount = Math.min(amount, Math.max(0, Number(discounts[i] || 0)));
+                return {name:item.name || 'Product', sku:item.sku || item.sku_code || product?.sku || '—', qty, price, amount, discount, net:amount-discount};
             });
-            const subtotal = itemsData.reduce((sum, item) => sum + item.amount, 0);
-            const discountTotal = itemsData.reduce((sum, item) => sum + item.discount, 0);
+            const subtotal = rows.reduce((v,x)=>v+x.amount,0);
+            const discountTotal = rows.reduce((v,x)=>v+x.discount,0);
             const total = Math.max(0, subtotal - discountTotal + shipping);
-            const paid = isReceipt ? ((/paid|fully paid/i.test(String(order.payment || '')) || ['Paid','Sold','Shipped'].includes(order.status)) ? total : 0) : null;
-            const items = itemsData.map(item =>
-                '<tr><td>' + escDoc(item.name) + '<small>SKU: ' + escDoc(item.sku) + '</small></td><td>' + item.qty + '</td><td>MVR ' + item.price.toFixed(2) + '</td><td>MVR ' + item.discount.toFixed(2) + '</td><td>MVR ' + item.net.toFixed(2) + '</td></tr>'
-            ).join('');
+            const paid = isReceipt ? ((/paid|fully paid/i.test(String(order.payment || '')) || ['Paid','Sold','Shipped'].includes(order.status)) ? total : 0) : 0;
             const customer = order.customerName || order.igHandle || order.customer || 'Customer';
             const delivery = order.deliveryType === 'Boat/Ferry' ? (order.boatFerryDetails || '') : (order.address || '');
-            const doc = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + number + '</title><style>*{box-sizing:border-box}body{font:14px Arial,sans-serif;color:#172238;margin:0;padding:36px}.paper{max-width:760px;margin:auto}.top{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #172238;padding-bottom:20px}.logo{width:150px;height:76px;object-fit:contain}.tag{font-size:26px;font-weight:800;color:#172238}h2{margin:28px 0 6px}.muted{color:#64748b;font-size:12px}.meta{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:22px 0}.meta div{padding:12px;background:#f5f7fa;border-radius:8px}table{width:100%;border-collapse:collapse;margin-top:22px}th,td{text-align:left;padding:10px 7px;border-bottom:1px solid #e2e8f0}th{background:#f5f7fa;font-size:12px}td small{display:block;color:#64748b;margin-top:4px}.totals{margin:20px 0 0 auto;max-width:300px}.totals div{display:flex;justify-content:space-between;padding:7px 0}.grand{font-size:18px;font-weight:800;border-top:2px solid #172238;margin-top:8px;padding-top:12px!important}.foot{margin-top:55px;text-align:center;color:#64748b;font-size:12px}@media(max-width:560px){body{padding:14px;font-size:12px}th,td{padding:7px 4px;font-size:11px}.tag{font-size:18px}.logo{width:110px}}@media print{body{padding:0}.no-print{display:none}}</style></head><body><main class="paper"><header class="top"><img class="logo" src="./assets/styve-logo.png" alt="Styve"><div class="tag">' + (isReceipt ? 'PAYMENT RECEIPT' : 'INVOICE') + '</div></header><h2>' + number + '</h2><div class="muted">Order reference: ' + escDoc(getOrderNumber(order)) + '</div><section class="meta"><div><b>Bill to</b><br>' + escDoc(customer) + '<br>' + escDoc(order.phone || '') + '</div><div><b>Document date</b><br>' + escDoc(order.date || new Date().toISOString().slice(0,10)) + '<br><b>Payment</b>: ' + escDoc(order.payment || '—') + '<br><b>Order status</b>: ' + escDoc(order.status || '—') + '</div></section>' + (delivery ? '<p><b>Delivery (' + escDoc(order.deliveryType || 'Address') + '):</b> ' + escDoc(delivery) + '</p>' : '') + '<table><thead><tr><th>Item / SKU</th><th>Qty</th><th>Unit price</th><th>Discount</th><th>Net amount</th></tr></thead><tbody>' + items + '</tbody></table><section class="totals"><div><span>Subtotal</span><b>MVR ' + subtotal.toFixed(2) + '</b></div>' + (discountTotal ? '<div><span>Discount</span><b>− MVR ' + discountTotal.toFixed(2) + '</b></div>' : '') + (shipping ? '<div><span>Shipping</span><b>MVR ' + shipping.toFixed(2) + '</b></div>' : '') + '<div class="grand"><span>Total</span><span>MVR ' + total.toFixed(2) + '</span></div>' + (isReceipt ? '<div><span>Amount received</span><b>MVR ' + paid.toFixed(2) + '</b></div><div><span>Balance due</span><b>MVR ' + Math.max(0,total-paid).toFixed(2) + '</b></div>' : '') + '</section><footer class="foot">' + (isReceipt ? 'Thank you for your payment!' : 'Thank you for choosing Styve.') + '</footer><div class="no-print" style="text-align:center;margin-top:28px"><button onclick="window.print()" style="background:#172238;color:white;border:0;padding:12px 24px;border-radius:8px;font-weight:bold">Print / Save as PDF</button></div></main></body></html>';
-            win.document.open(); win.document.write(doc); win.document.close();
-            // Keep the document in its own tab/window so the mobile share/print sheet
-            // can be launched by a fresh, explicit tap on the document's print button.
-            try { win.focus(); } catch (e) {}
-            win.onload = () => { try { win.focus(); } catch (e) {} };
+            const clean = value => String(value ?? '').normalize('NFKD').replace(/[^\\x20-\\x7E]/g, '?');
+            const esc = value => clean(value).replace(/\\\\/g,'\\\\\\\\').replace(/\\(/g,'\\\\(').replace(/\\)/g,'\\\\)');
+            const lines = [
+                'STYVE', isReceipt ? 'PAYMENT RECEIPT' : 'INVOICE', number,
+                'Order: ' + getOrderNumber(order), 'Date: ' + (order.date || new Date().toISOString().slice(0,10)),
+                'Customer: ' + customer, 'Phone: ' + (order.phone || '-'),
+                ...(delivery ? ['Delivery (' + (order.deliveryType || 'Address') + '): ' + delivery] : []),
+                '', 'ITEM / SKU                       QTY     UNIT PRICE       DISCOUNT       NET',
+                ...rows.map(x => x.name + ' / SKU: ' + x.sku + ' | ' + x.qty + ' | ' + x.price.toFixed(2) + ' | ' + x.discount.toFixed(2) + ' | ' + x.net.toFixed(2)),
+                '', 'Subtotal: MVR ' + subtotal.toFixed(2),
+                'Discount: MVR ' + discountTotal.toFixed(2),
+                'Shipping: MVR ' + shipping.toFixed(2),
+                'TOTAL: MVR ' + total.toFixed(2),
+                ...(isReceipt ? ['Amount received: MVR ' + paid.toFixed(2), 'Balance due: MVR ' + Math.max(0,total-paid).toFixed(2)] : []),
+                '', isReceipt ? 'Thank you for your payment!' : 'Thank you for choosing Styve.'
+            ];
+            // Build a standards-compliant, one-page PDF without external libraries.
+            const content = ['BT','/F1 10 Tf','50 790 Td','14 TL',...lines.flatMap((line,i)=> i===0 ? ['(' + esc(line) + ') Tj'] : ['T*','(' + esc(line) + ') Tj']),'ET'].join('\n');
+            const objects = [
+                '<< /Type /Catalog /Pages 2 0 R >>',
+                '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+                '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
+                '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+                '<< /Length ' + content.length + ' >>\nstream\n' + content + '\nendstream'
+            ];
+            let pdf = '%PDF-1.4\n', offsets = [0];
+            objects.forEach((obj,i)=>{ offsets.push(pdf.length); pdf += (i+1)+' 0 obj\n'+obj+'\nendobj\n'; });
+            const xref = pdf.length;
+            pdf += 'xref\n0 '+(objects.length+1)+'\n0000000000 65535 f \n';
+            for(let i=1;i<offsets.length;i++) pdf += String(offsets[i]).padStart(10,'0')+' 00000 n \n';
+            pdf += 'trailer\n<< /Size '+(objects.length+1)+' /Root 1 0 R >>\nstartxref\n'+xref+'\n%%EOF';
+            const blob = new Blob([pdf], {type:'application/pdf'});
+            const filename = number + '.pdf';
+            const file = new File([blob], filename, {type:'application/pdf'});
+            if (navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))) {
+                navigator.share({files:[file], title:number, text:isReceipt ? 'Styve payment receipt' : 'Styve invoice'})
+                    .catch(error => { if (error && error.name !== 'AbortError') downloadPdfBlob(blob, filename); });
+            } else {
+                downloadPdfBlob(blob, filename);
+            }
+        }
+
+        function downloadPdfBlob(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url; link.download = filename; link.style.display = 'none';
+            document.body.appendChild(link); link.click(); link.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 60000);
+            toast('PDF created. If it did not save automatically, use your browser download/share options.');
         }
 
         function buildDeliveryWhatsAppMessage(order) {
