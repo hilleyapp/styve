@@ -1647,6 +1647,10 @@
         function printOrderDocument(id, type) {
             const order = orders.find(item => String(item.id) === String(id));
             if (!order) { toast('Order not found'); return; }
+            // Open synchronously from the user's tap, before prompts or other work.
+            // Mobile Safari and installed PWAs often block popups opened after a prompt.
+            const win = window.open('', '_blank');
+            if (!win) { toast('Your browser blocked the document window. Allow pop-ups for Styve and try again.'); return; }
             const escDoc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
             const isReceipt = type === 'receipt';
             const number = (isReceipt ? 'REC-' : 'INV-') + String(String(getOrderNumber(order)).match(/(\\d{4})$/)?.[1] || '0001');
@@ -1659,10 +1663,11 @@
                     const lineGross = Number(item.qty || 0) * Number(item.price || 0);
                     const current = Number(invoiceDiscounts[index] || 0);
                     const entered = window.prompt('Discount amount for ' + (item.name || 'Product') + ' (MVR). Enter 0 for no discount:', current.toFixed(2));
-                    if (entered === null) return;
+                    if (entered === null) { win.close(); return; }
                     const discount = Number(entered);
                     if (!Number.isFinite(discount) || discount < 0 || discount > lineGross) {
                         toast('Discount must be between MVR 0.00 and the item line amount.');
+                        win.close();
                         return;
                     }
                     invoiceDiscounts[index] = discount;
@@ -1688,9 +1693,10 @@
             const customer = order.customerName || order.igHandle || order.customer || 'Customer';
             const delivery = order.deliveryType === 'Boat/Ferry' ? (order.boatFerryDetails || '') : (order.address || '');
             const doc = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + number + '</title><style>*{box-sizing:border-box}body{font:14px Arial,sans-serif;color:#172238;margin:0;padding:36px}.paper{max-width:760px;margin:auto}.top{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #172238;padding-bottom:20px}.logo{width:150px;height:76px;object-fit:contain}.tag{font-size:26px;font-weight:800;color:#172238}h2{margin:28px 0 6px}.muted{color:#64748b;font-size:12px}.meta{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:22px 0}.meta div{padding:12px;background:#f5f7fa;border-radius:8px}table{width:100%;border-collapse:collapse;margin-top:22px}th,td{text-align:left;padding:10px 7px;border-bottom:1px solid #e2e8f0}th{background:#f5f7fa;font-size:12px}td small{display:block;color:#64748b;margin-top:4px}.totals{margin:20px 0 0 auto;max-width:300px}.totals div{display:flex;justify-content:space-between;padding:7px 0}.grand{font-size:18px;font-weight:800;border-top:2px solid #172238;margin-top:8px;padding-top:12px!important}.foot{margin-top:55px;text-align:center;color:#64748b;font-size:12px}@media(max-width:560px){body{padding:14px;font-size:12px}th,td{padding:7px 4px;font-size:11px}.tag{font-size:18px}.logo{width:110px}}@media print{body{padding:0}.no-print{display:none}}</style></head><body><main class="paper"><header class="top"><img class="logo" src="./assets/styve-logo.png" alt="Styve"><div class="tag">' + (isReceipt ? 'PAYMENT RECEIPT' : 'INVOICE') + '</div></header><h2>' + number + '</h2><div class="muted">Order reference: ' + escDoc(getOrderNumber(order)) + '</div><section class="meta"><div><b>Bill to</b><br>' + escDoc(customer) + '<br>' + escDoc(order.phone || '') + '</div><div><b>Document date</b><br>' + escDoc(order.date || new Date().toISOString().slice(0,10)) + '<br><b>Payment</b>: ' + escDoc(order.payment || '—') + '<br><b>Order status</b>: ' + escDoc(order.status || '—') + '</div></section>' + (delivery ? '<p><b>Delivery (' + escDoc(order.deliveryType || 'Address') + '):</b> ' + escDoc(delivery) + '</p>' : '') + '<table><thead><tr><th>Item / SKU</th><th>Qty</th><th>Unit price</th><th>Discount</th><th>Net amount</th></tr></thead><tbody>' + items + '</tbody></table><section class="totals"><div><span>Subtotal</span><b>MVR ' + subtotal.toFixed(2) + '</b></div>' + (discountTotal ? '<div><span>Discount</span><b>− MVR ' + discountTotal.toFixed(2) + '</b></div>' : '') + (shipping ? '<div><span>Shipping</span><b>MVR ' + shipping.toFixed(2) + '</b></div>' : '') + '<div class="grand"><span>Total</span><span>MVR ' + total.toFixed(2) + '</span></div>' + (isReceipt ? '<div><span>Amount received</span><b>MVR ' + paid.toFixed(2) + '</b></div><div><span>Balance due</span><b>MVR ' + Math.max(0,total-paid).toFixed(2) + '</b></div>' : '') + '</section><footer class="foot">' + (isReceipt ? 'Thank you for your payment!' : 'Thank you for choosing Styve.') + '</footer><div class="no-print" style="text-align:center;margin-top:28px"><button onclick="window.print()" style="background:#172238;color:white;border:0;padding:12px 24px;border-radius:8px;font-weight:bold">Print / Save as PDF</button></div></main></body></html>';
-            const win = window.open('', '_blank');
-            if (!win) { toast('Allow pop-ups to open the document.'); return; }
             win.document.open(); win.document.write(doc); win.document.close();
+            // Keep the document in its own tab/window so the mobile share/print sheet
+            // can be launched by a fresh, explicit tap on the document's print button.
+            try { win.focus(); } catch (e) {}
             win.onload = () => { try { win.focus(); } catch (e) {} };
         }
 
