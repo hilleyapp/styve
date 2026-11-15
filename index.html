@@ -1588,6 +1588,7 @@
             const actionsMarkup = o => `<div class="flex items-center gap-2 flex-wrap">
                 <button onclick="printOrderDocument('${esc(o.id)}','invoice')" class="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold whitespace-nowrap"><i class="fa-solid fa-file-invoice mr-1"></i>Invoice</button>
                 <button onclick="printOrderDocument('${esc(o.id)}','receipt')" class="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg text-xs font-semibold whitespace-nowrap"><i class="fa-solid fa-receipt mr-1"></i>Receipt</button>
+                <button onclick="editOrder('${esc(o.id)}')" class="px-2.5 py-1.5 bg-sky-50 hover:bg-sky-100 text-sky-700 rounded-lg text-xs font-semibold whitespace-nowrap"><i class="fa-solid fa-pen-to-square mr-1"></i>Edit</button>
                 <button onclick="sendOrderToDeliveryWhatsApp('${esc(o.id)}')" class="px-2.5 py-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 rounded-lg text-xs font-semibold whitespace-nowrap"><i class="fa-brands fa-whatsapp mr-1"></i>${o.deliverySentAt ? 'Resend' : 'Send to Delivery'}</button>
                 ${o.deliverySentAt ? '<span class="text-[10px] text-emerald-600 font-semibold whitespace-nowrap"><i class="fa-solid fa-check mr-1"></i>Sent</span>' : `<button onclick="markOrderDeliverySent('${esc(o.id)}')" class="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[10px] font-semibold whitespace-nowrap">Mark sent</button>`}
                 <button onclick="deleteOrder('${esc(o.id)}')" class="text-rose-500 hover:text-rose-700 transition px-1" title="Delete order"><i class="fa-solid fa-trash"></i></button>
@@ -1816,7 +1817,9 @@ if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){n
             document.getElementById('order-modal').classList.remove('hidden');
         }
 
-        function closeOrderModal() { document.getElementById('order-modal').classList.add('hidden'); }
+        let editingOrderId = null;
+
+        function closeOrderModal() { document.getElementById('order-modal').classList.add('hidden'); editingOrderId = null; }
 
         function toggleOrderDeliveryFields() {
             const type = document.getElementById('order-delivery-type')?.value || 'Address';
@@ -1856,25 +1859,69 @@ if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){n
             document.getElementById('order-grand-total').textContent = `MVR ${total.toFixed(2)}`;
         }
 
+        function editOrder(id) {
+            const order = orders.find(o => String(o.id) === String(id));
+            if (!order) { toast('Order not found'); return; }
+            editingOrderId = order.id;
+            orderCart = (order.items || []).map(item => ({ ...item }));
+            document.getElementById('order-form').reset();
+            document.getElementById('order-customer-name').value = order.customerName || '';
+            document.getElementById('order-ig').value = order.igHandle || order.customer || '';
+            document.getElementById('order-phone').value = order.phone || '';
+            document.getElementById('order-delivery-type').value = order.deliveryType || 'Address';
+            document.getElementById('order-address').value = order.address || '';
+            document.getElementById('order-boat-ferry-details').value = order.boatFerryDetails || '';
+            document.getElementById('order-status').value = order.status || 'Pending';
+            document.getElementById('order-payment').value = order.payment || 'BML Transfer';
+            toggleOrderDeliveryFields();
+            renderOrderCart();
+            const title = document.querySelector('#order-modal h3');
+            if (title) title.textContent = 'Edit Order ' + getOrderNumber(order);
+            const submit = document.querySelector('#order-form button[type="submit"]');
+            if (submit) submit.textContent = 'Save Changes';
+            document.getElementById('order-modal').classList.remove('hidden');
+        }
+
         function saveOrder(e) {
             e.preventDefault();
             if (!orderCart.length) { toast("Add at least one product to the order!"); return; }
+            const deliveryType = document.getElementById('order-delivery-type').value;
+            const updatedFields = {
+                customerName: document.getElementById('order-customer-name').value.trim(),
+                igHandle: document.getElementById('order-ig').value.trim(),
+                phone: document.getElementById('order-phone').value.trim(),
+                deliveryType,
+                address: deliveryType === 'Address' ? document.getElementById('order-address').value.trim() : '',
+                boatFerryDetails: deliveryType === 'Boat/Ferry' ? document.getElementById('order-boat-ferry-details').value.trim() : '',
+                items: orderCart.map(item => ({ ...item, cost: Number(item.cost ?? products.find(p => String(p.id) === String(item.productId))?.cost ?? 0) })),
+                total: orderCart.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.qty || 0), 0),
+                status: document.getElementById('order-status').value,
+                payment: document.getElementById('order-payment').value
+            };
+            if (editingOrderId) {
+                const index = orders.findIndex(o => String(o.id) === String(editingOrderId));
+                if (index < 0) { toast('This order could not be found.'); return; }
+                const previous = orders[index];
+                const wasSold = previous.status === 'Sold';
+                const willBeSold = updatedFields.status === 'Sold';
+                if (wasSold && !applyOrderStock(previous, 1)) return;
+                if (willBeSold && !applyOrderStock({ ...previous, items: updatedFields.items }, -1)) {
+                    if (wasSold) applyOrderStock(previous, -1);
+                    return;
+                }
+                orders[index] = { ...previous, ...updatedFields };
+                closeOrderModal();
+                refreshAll();
+                toast('Order updated successfully' + (wasSold !== willBeSold ? (willBeSold ? ' and stock deducted' : ' and stock restored') : ''));
+                return;
+            }
             const nextOrderNumber = getNextOrderNumber();
             if (!nextOrderNumber) { toast('Order number limit reached (ORD-9999).'); return; }
             const newOrder = {
                 id: `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
                 orderNumber: nextOrderNumber,
                 date: new Date().toISOString().split('T')[0],
-                customerName: document.getElementById('order-customer-name').value.trim(),
-                igHandle: document.getElementById('order-ig').value,
-                phone: document.getElementById('order-phone').value,
-                deliveryType: document.getElementById('order-delivery-type').value,
-                address: document.getElementById('order-delivery-type').value === 'Address' ? document.getElementById('order-address').value.trim() : '',
-                boatFerryDetails: document.getElementById('order-delivery-type').value === 'Boat/Ferry' ? document.getElementById('order-boat-ferry-details').value.trim() : '',
-                items: orderCart.map(item => ({ ...item, cost: Number(item.cost ?? products.find(p => p.id === item.productId)?.cost ?? 0) })),
-                total: orderCart.reduce((s, i) => s + (i.price * i.qty), 0),
-                status: document.getElementById('order-status').value,
-                payment: document.getElementById('order-payment').value
+                ...updatedFields
             };
             if (newOrder.status === 'Sold' && !applyOrderStock(newOrder, -1)) return;
             orders.unshift(newOrder);
@@ -1883,7 +1930,6 @@ if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){n
             confetti({ particleCount: 40, spread: 60, origin: { y: 0.7 } });
             toast("Order successfully logged!");
         }
-
 
 
         function openAddProductModal() {
