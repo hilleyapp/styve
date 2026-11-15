@@ -1586,6 +1586,8 @@
             }).join('') || '<span class="text-slate-400 italic">No items</span>';
             const statusMarkup = o => `<select aria-label="Order status" onchange="updateOrderStatus('${esc(o.id)}', this.value)" class="max-w-full bg-slate-950 border border-slate-700 text-slate-100 rounded-lg px-2 py-1.5 text-xs font-semibold focus:outline-none">${statusOptions(o)}</select>`;
             const actionsMarkup = o => `<div class="flex items-center gap-2 flex-wrap">
+                <button onclick="printOrderDocument('${esc(o.id)}','invoice')" class="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold whitespace-nowrap"><i class="fa-solid fa-file-invoice mr-1"></i>Invoice</button>
+                <button onclick="printOrderDocument('${esc(o.id)}','receipt')" class="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg text-xs font-semibold whitespace-nowrap"><i class="fa-solid fa-receipt mr-1"></i>Receipt</button>
                 <button onclick="sendOrderToDeliveryWhatsApp('${esc(o.id)}')" class="px-2.5 py-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 rounded-lg text-xs font-semibold whitespace-nowrap"><i class="fa-brands fa-whatsapp mr-1"></i>${o.deliverySentAt ? 'Resend' : 'Send to Delivery'}</button>
                 ${o.deliverySentAt ? '<span class="text-[10px] text-emerald-600 font-semibold whitespace-nowrap"><i class="fa-solid fa-check mr-1"></i>Sent</span>' : `<button onclick="markOrderDeliverySent('${esc(o.id)}')" class="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[10px] font-semibold whitespace-nowrap">Mark sent</button>`}
                 <button onclick="deleteOrder('${esc(o.id)}')" class="text-rose-500 hover:text-rose-700 transition px-1" title="Delete order"><i class="fa-solid fa-trash"></i></button>
@@ -1642,6 +1644,30 @@
                 activeButton.classList.add('bg-indigo-500', 'text-white', 'shadow-sm');
             }
         }
+        function printOrderDocument(id, type) {
+            const order = orders.find(item => String(item.id) === String(id));
+            if (!order) { toast('Order not found'); return; }
+            const escDoc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+            const isReceipt = type === 'receipt';
+            const number = (isReceipt ? 'REC-' : 'INV-') + String(String(getOrderNumber(order)).match(/(\\d{4})$/)?.[1] || '0001');
+            const total = Number(order.total || 0);
+            const paid = isReceipt ? ((/paid|fully paid/i.test(String(order.payment || '')) || ['Paid','Sold','Shipped'].includes(order.status)) ? total : 0) : null;
+            const shipping = Number(order.shipping || order.shippingFee || 0);
+            const items = (order.items || []).map(item => {
+                const product = products.find(p => String(p.id) === String(item.productId));
+                const sku = item.sku || item.sku_code || product?.sku || '—';
+                const qty = Number(item.qty || 0), price = Number(item.price || 0);
+                return '<tr><td>' + escDoc(item.name || 'Product') + '<small>SKU: ' + escDoc(sku) + '</small></td><td>' + qty + '</td><td>MVR ' + price.toFixed(2) + '</td><td>MVR ' + (qty * price).toFixed(2) + '</td></tr>';
+            }).join('');
+            const customer = order.customerName || order.igHandle || order.customer || 'Customer';
+            const delivery = order.deliveryType === 'Boat/Ferry' ? (order.boatFerryDetails || '') : (order.address || '');
+            const doc = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + number + '</title><style>*{box-sizing:border-box}body{font:14px Arial,sans-serif;color:#172238;margin:0;padding:36px}.paper{max-width:760px;margin:auto}.top{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #172238;padding-bottom:20px}.logo{width:150px;height:76px;object-fit:contain}.tag{font-size:26px;font-weight:800;color:#172238}h2{margin:28px 0 6px}.muted{color:#64748b;font-size:12px}.meta{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:22px 0}.meta div{padding:12px;background:#f5f7fa;border-radius:8px}table{width:100%;border-collapse:collapse;margin-top:22px}th,td{text-align:left;padding:12px 8px;border-bottom:1px solid #e2e8f0}th{background:#f5f7fa;font-size:12px}td small{display:block;color:#64748b;margin-top:4px}.totals{margin:20px 0 0 auto;max-width:300px}.totals div{display:flex;justify-content:space-between;padding:7px 0}.grand{font-size:18px;font-weight:800;border-top:2px solid #172238;margin-top:8px;padding-top:12px!important}.foot{margin-top:55px;text-align:center;color:#64748b;font-size:12px}@media print{body{padding:0}.no-print{display:none}}</style></head><body><main class="paper"><header class="top"><img class="logo" src="./assets/styve-logo.png" alt="Styve"><div class="tag">' + (isReceipt ? 'PAYMENT RECEIPT' : 'INVOICE') + '</div></header><h2>' + number + '</h2><div class="muted">Order reference: ' + escDoc(getOrderNumber(order)) + '</div><section class="meta"><div><b>Bill to</b><br>' + escDoc(customer) + '<br>' + escDoc(order.phone || '') + '</div><div><b>Document date</b><br>' + escDoc(order.date || new Date().toISOString().slice(0,10)) + '<br><b>Payment</b>: ' + escDoc(order.payment || '—') + '<br><b>Order status</b>: ' + escDoc(order.status || '—') + '</div></section>' + (delivery ? '<p><b>Delivery (' + escDoc(order.deliveryType || 'Address') + '):</b> ' + escDoc(delivery) + '</p>' : '') + '<table><thead><tr><th>Item / SKU</th><th>Qty</th><th>Unit price</th><th>Amount</th></tr></thead><tbody>' + items + '</tbody></table><section class="totals"><div><span>Subtotal</span><b>MVR ' + Math.max(0,total-shipping).toFixed(2) + '</b></div>' + (shipping ? '<div><span>Shipping</span><b>MVR ' + shipping.toFixed(2) + '</b></div>' : '') + '<div class="grand"><span>Total</span><span>MVR ' + total.toFixed(2) + '</span></div>' + (isReceipt ? '<div><span>Amount received</span><b>MVR ' + paid.toFixed(2) + '</b></div><div><span>Balance due</span><b>MVR ' + Math.max(0,total-paid).toFixed(2) + '</b></div>' : '') + '</section><footer class="foot">' + (isReceipt ? 'Thank you for your payment!' : 'Thank you for choosing Styve.') + '</footer><div class="no-print" style="text-align:center;margin-top:28px"><button onclick="window.print()" style="background:#172238;color:white;border:0;padding:12px 24px;border-radius:8px;font-weight:bold">Print / Save as PDF</button></div></main></body></html>';
+            const win = window.open('', '_blank');
+            if (!win) { toast('Allow pop-ups to open the document.'); return; }
+            win.document.open(); win.document.write(doc); win.document.close();
+            win.onload = () => { try { win.focus(); } catch (e) {} };
+        }
+
         function buildDeliveryWhatsAppMessage(order) {
             const itemLines = (order.items || []).map(item => {
                 const matchedProduct = (products || []).find(product =>
