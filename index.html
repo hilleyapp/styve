@@ -1650,81 +1650,22 @@
             saveOrderPdf(id, type);
         }
 
-        function saveOrderPdf(id, type) {
-            const order = orders.find(item => String(item.id) === String(id));
-            if (!order) { toast('Order not found'); return; }
-            const isReceipt = type === 'receipt';
-            const number = (isReceipt ? 'REC-' : 'INV-') + String(String(getOrderNumber(order)).match(/(\\d{4})$/)?.[1] || '0001');
-            const shipping = Number(order.shipping || order.shippingFee || 0);
-            const discounts = Array.isArray(order.invoiceDiscounts) ? order.invoiceDiscounts : [];
-            if (!isReceipt) {
-                for (let i = 0; i < (order.items || []).length; i++) {
-                    const item = order.items[i], gross = Number(item.qty || 0) * Number(item.price || 0);
-                    const entered = window.prompt('Discount for ' + (item.name || 'Product') + ' (MVR):', Number(discounts[i] || 0).toFixed(2));
-                    if (entered === null) return;
-                    const discount = Number(entered);
-                    if (!Number.isFinite(discount) || discount < 0 || discount > gross) {
-                        toast('Discount must be between MVR 0.00 and the item line amount.');
-                        return;
-                    }
-                    discounts[i] = discount;
-                }
-                order.invoiceDiscounts = discounts;
-                saveState();
-            }
-            const rows = (order.items || []).map((item, i) => {
-                const product = products.find(p => String(p.id) === String(item.productId));
-                const qty = Number(item.qty || 0), price = Number(item.price || 0), amount = qty * price;
-                const discount = Math.min(amount, Math.max(0, Number(discounts[i] || 0)));
-                return {name:item.name || 'Product', sku:item.sku || item.sku_code || product?.sku || '—', qty, price, amount, discount, net:amount-discount};
-            });
-            const subtotal = rows.reduce((v,x)=>v+x.amount,0);
-            const discountTotal = rows.reduce((v,x)=>v+x.discount,0);
-            const total = Math.max(0, subtotal - discountTotal + shipping);
-            const paid = isReceipt ? ((/paid|fully paid/i.test(String(order.payment || '')) || ['Paid','Sold','Shipped'].includes(order.status)) ? total : 0) : 0;
-            const customer = order.customerName || order.igHandle || order.customer || 'Customer';
-            const delivery = order.deliveryType === 'Boat/Ferry' ? (order.boatFerryDetails || '') : (order.address || '');
-            const clean = value => String(value ?? '').normalize('NFKD').replace(/[^\x20-\x7E]/g, '?');
-            const esc = value => clean(value).replaceAll(String.fromCharCode(92), String.fromCharCode(92,92)).replaceAll('(', String.fromCharCode(92)+'(').replaceAll(')', String.fromCharCode(92)+')');
-            const lines = [
-                'STYVE', isReceipt ? 'PAYMENT RECEIPT' : 'INVOICE', number,
-                'Order: ' + getOrderNumber(order), 'Date: ' + (order.date || new Date().toISOString().slice(0,10)),
-                'Customer: ' + customer, 'Phone: ' + (order.phone || '-'),
-                ...(delivery ? ['Delivery (' + (order.deliveryType || 'Address') + '): ' + delivery] : []),
-                '', 'ITEM / SKU                       QTY     UNIT PRICE       DISCOUNT       NET',
-                ...rows.map(x => x.name + ' / SKU: ' + x.sku + ' | ' + x.qty + ' | ' + x.price.toFixed(2) + ' | ' + x.discount.toFixed(2) + ' | ' + x.net.toFixed(2)),
-                '', 'Subtotal: MVR ' + subtotal.toFixed(2),
-                'Discount: MVR ' + discountTotal.toFixed(2),
-                'Shipping: MVR ' + shipping.toFixed(2),
-                'TOTAL: MVR ' + total.toFixed(2),
-                ...(isReceipt ? ['Amount received: MVR ' + paid.toFixed(2), 'Balance due: MVR ' + Math.max(0,total-paid).toFixed(2)] : []),
-                '', isReceipt ? 'Thank you for your payment!' : 'Thank you for choosing Styve.'
-            ];
-            // Build a standards-compliant, one-page PDF without external libraries.
-            const content = ['BT','/F1 10 Tf','50 790 Td','14 TL',...lines.flatMap((line,i)=> i===0 ? ['(' + esc(line) + ') Tj'] : ['T*','(' + esc(line) + ') Tj']),'ET'].join('\n');
-            const objects = [
-                '<< /Type /Catalog /Pages 2 0 R >>',
-                '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
-                '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
-                '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
-                '<< /Length ' + content.length + ' >>\nstream\n' + content + '\nendstream'
-            ];
-            let pdf = '%PDF-1.4\n', offsets = [0];
-            objects.forEach((obj,i)=>{ offsets.push(pdf.length); pdf += (i+1)+' 0 obj\n'+obj+'\nendobj\n'; });
-            const xref = pdf.length;
-            pdf += 'xref\n0 '+(objects.length+1)+'\n0000000000 65535 f \n';
-            for(let i=1;i<offsets.length;i++) pdf += String(offsets[i]).padStart(10,'0')+' 00000 n \n';
-            pdf += 'trailer\n<< /Size '+(objects.length+1)+' /Root 1 0 R >>\nstartxref\n'+xref+'\n%%EOF';
-            const blob = new Blob([pdf], {type:'application/pdf'});
-            const filename = number + '.pdf';
-            const file = new File([blob], filename, {type:'application/pdf'});
-            if (navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))) {
-                navigator.share({files:[file], title:number, text:isReceipt ? 'Styve payment receipt' : 'Styve invoice'})
-                    .catch(error => { if (error && error.name !== 'AbortError') downloadPdfBlob(blob, filename); });
-            } else {
-                downloadPdfBlob(blob, filename);
-            }
-        }
+        async function saveOrderPdf(id,type){
+const o=orders.find(x=>String(x.id)===String(id));if(!o){toast('Order not found');return;}const rec=type==='receipt',num=(rec?'REC-':'INV-')+String(String(getOrderNumber(o)).match(/(\\d{4})$/)?.[1]||'0001'),ds=Array.isArray(o.invoiceDiscounts)?o.invoiceDiscounts:[],ship=Number(o.shipping||o.shippingFee||0);
+if(!rec){for(let i=0;i<(o.items||[]).length;i++){const it=o.items[i],gross=Number(it.qty||0)*Number(it.price||0),v=prompt('Discount for '+(it.name||'Product')+' (MVR):',Number(ds[i]||0).toFixed(2));if(v===null)return;const d=Number(v);if(!Number.isFinite(d)||d<0||d>gross){toast('Invalid discount amount');return;}ds[i]=d;}o.invoiceDiscounts=ds;saveState();}
+const rows=(o.items||[]).map((it,i)=>{const p=products.find(x=>String(x.id)===String(it.productId)),q=Number(it.qty||0),pr=Number(it.price||0),d=Math.min(q*pr,Math.max(0,Number(ds[i]||0)));return{name:it.name||'Product',sku:it.sku||it.sku_code||p?.sku||'-',q,pr,d,net:q*pr-d};}),sub=rows.reduce((a,x)=>a+x.q*x.pr,0),disc=rows.reduce((a,x)=>a+x.d,0),total=Math.max(0,sub-disc+ship),paid=rec&&(/paid|fully paid/i.test(String(o.payment||''))||['Paid','Sold','Shipped'].includes(o.status))?total:0;
+const safe=v=>String(v??'').normalize('NFKD').replace(/[^\\x20-\\x7E]/g,'?'),esc=v=>safe(v).replaceAll(String.fromCharCode(92),String.fromCharCode(92,92)).replaceAll('(',String.fromCharCode(92)+'(').replaceAll(')',String.fromCharCode(92)+')'),c=[];
+const t=(x,y,z,v,b=false,col='0.12 0.16 0.22')=>c.push(col+' rg BT /'+(b?'F2':'F1')+' '+z+' Tf '+x+' '+y+' Td ('+esc(v)+') Tj ET'),r=(x,y,w,h,col)=>c.push(col+' rg '+x+' '+y+' '+w+' '+h+' re f'),l=(x,y,X,Y)=>c.push('0.82 0.85 0.89 RG 1 w '+x+' '+y+' m '+X+' '+Y+' l S');
+r(0,785,612,57,'0.08 0.11 0.17');r(42,795,128,39,'1 1 1');t(425,811,19,rec?'RECEIPT':'INVOICE',true,'1 1 1');t(425,793,9,num,false,'0.92 0.94 0.97');
+try{const im=new Image();im.src='./assets/styve-logo.png';await new Promise((ok,no)=>{im.onload=ok;im.onerror=no;setTimeout(no,4000)});const cv=document.createElement('canvas');cv.width=120;cv.height=48;const cx=cv.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,120,48);const sc=Math.min(116/im.width,44/im.height);cx.drawImage(im,(120-im.width*sc)/2,(48-im.height*sc)/2,im.width*sc,im.height*sc);const px=cx.getImageData(0,0,120,48).data;let hx='';for(let i=0;i<px.length;i+=4)hx+=[px[i],px[i+1],px[i+2]].map(n=>n.toString(16).padStart(2,'0')).join('');c.push('q 120 0 0 39 46 795 cm BI /W 120 /H 48 /CS /RGB /BPC 8 /F /ASCIIHexDecode ID '+hx+'> EI Q');}catch(e){t(55,810,20,'STYVE',true);}
+const cust=o.customerName||o.igHandle||o.customer||'Customer',del=o.deliveryType==='Boat/Ferry'?(o.boatFerryDetails||''):(o.address||'');t(42,757,9,'ORDER REFERENCE',true,'0.42 0.47 0.54');t(42,739,12,String(getOrderNumber(o)),true);t(330,757,9,'DATE',true,'0.42 0.47 0.54');t(330,739,12,o.date||new Date().toISOString().slice(0,10),true);
+r(42,670,528,48,'0.96 0.97 0.98');t(56,699,9,'BILL TO',true,'0.42 0.47 0.54');t(56,681,12,cust,true);t(320,699,9,'CONTACT / PAYMENT',true,'0.42 0.47 0.54');t(320,681,10,(o.phone||'-')+' | '+(o.payment||'-'));if(del)t(42,648,9,'DELIVERY: '+(o.deliveryType||'Address')+' - '+del);
+const top=del?616:642;r(42,top-22,528,22,'0.09 0.13 0.20');t(50,top-15,8,'ITEM / SKU',true,'1 1 1');t(330,top-15,8,'QTY',true,'1 1 1');t(365,top-15,8,'UNIT',true,'1 1 1');t(425,top-15,8,'DISCOUNT',true,'1 1 1');t(510,top-15,8,'NET',true,'1 1 1');let y=top-43;
+rows.forEach((x,i)=>{if(i%2===0)r(42,y-8,528,28,'0.97 0.98 0.99');t(50,y+5,9,x.name.slice(0,38),true);t(50,y-7,7,'SKU: '+x.sku.slice(0,40),false,'0.42 0.47 0.54');t(332,y,9,String(x.q));t(365,y,8,x.pr.toFixed(2));t(425,y,8,x.d.toFixed(2));t(510,y,8,x.net.toFixed(2));y-=30;});
+y=Math.min(y-8,top-48-rows.length*30);l(340,y+10,570,y+10);const totalRow=(label,val,bold=false)=>{t(365,y,9,label,bold);t(490,y,9,'MVR '+Number(val).toFixed(2),bold);y-=19;};totalRow('Subtotal',sub);if(disc)totalRow('Discount',-disc);if(ship)totalRow('Shipping',ship);l(355,y+7,570,y+7);y-=9;totalRow('TOTAL',total,true);if(rec){totalRow('Amount received',paid);totalRow('Balance due',Math.max(0,total-paid),true);}l(42,82,570,82);t(42,62,9,'Thank you for '+(rec?'your payment':'choosing Styve')+'.',true,'0.30 0.35 0.42');t(42,45,7,'STYVE | Official sales document',false,'0.55 0.59 0.64');
+const content=c.join('\\n'),objs=['<< /Type /Catalog /Pages 2 0 R >>','<< /Type /Pages /Kids [3 0 R] /Count 1 >>','<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>','<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>','<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>','<< /Length '+content.length+' >>\\nstream\\n'+content+'\\nendstream'];let pdf='%PDF-1.4\\n',off=[0];objs.forEach((x,i)=>{off.push(pdf.length);pdf+=(i+1)+' 0 obj\\n'+x+'\\nendobj\\n';});const xr=pdf.length;pdf+='xref\\n0 '+(objs.length+1)+'\\n0000000000 65535 f \\n';for(let i=1;i<off.length;i++)pdf+=String(off[i]).padStart(10,'0')+' 00000 n \\n';pdf+='trailer\\n<< /Size '+(objs.length+1)+' /Root 1 0 R >>\\nstartxref\\n'+xr+'\\n%%EOF';const blob=new Blob([pdf],{type:'application/pdf'}),filename=num+'.pdf',file=new File([blob],filename,{type:'application/pdf'});
+if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){navigator.share({files:[file],title:num,text:rec?'Styve payment receipt':'Styve invoice'}).catch(e=>{if(e&&e.name!=='AbortError')downloadPdfBlob(blob,filename);});}else downloadPdfBlob(blob,filename);
+}
 
         function downloadPdfBlob(blob, filename) {
             const url = URL.createObjectURL(blob);
