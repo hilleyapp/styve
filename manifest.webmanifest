@@ -12,10 +12,10 @@
   "theme_color": "#172238",
   "icons": [
     {
-      "src": "./assets/styve-apple-touch-icon.png?v=1",
+      "src": "./assets/styve-apple-touch-icon.png?v=2",
       "sizes": "180x180",
       "type": "image/png",
       "purpose": "any"
     }
   ]
-}
+}\n
