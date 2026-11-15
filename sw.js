@@ -1,4 +1,4 @@
-const CACHE_NAME = 'styve-business-pwa-v4';
+const CACHE_NAME = 'styve-business-pwa-v6';
 const APP_SHELL = [
   './',
   './index.html',
@@ -6,7 +6,7 @@ const APP_SHELL = [
   './assets/styve-apple-touch-icon.png',
   './assets/styve-logo.svg',
   './assets/styve-pwa-icon.svg',
-  './assets/styve-banner.svg'
+  './assets/styve-banner.png'
 ];
 
 self.addEventListener('install', event => {
