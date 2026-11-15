@@ -1,4 +1,4 @@
-const CACHE_NAME = 'styve-business-pwa-v8';
+const CACHE_NAME = 'styve-business-pwa-v6';
 const APP_SHELL = [
   './',
   './index.html',

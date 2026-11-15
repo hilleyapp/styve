@@ -1427,7 +1427,6 @@
             alertBox.innerHTML = lowStockItems.length ? lowStockItems.map(item => `
                 <div class="p-3 bg-slate-950 rounded-xl border border-amber-500/30 flex justify-between items-center text-xs">
                     <div><h4 class="font-bold text-white">${item.name}</h4><span class="text-[10px] text-slate-400">Stock: ${item.stock} left</span></div>
-                    <button onclick="quickStockAdd(${item.id})" class="text-pink-400 font-bold hover:underline">+5 Stock</button>
                 </div>
             `).join('') : `<div class="text-xs text-slate-500 text-center py-6">All stock levels are healthy!</div>`;
 
@@ -1460,11 +1459,7 @@
             renderLiveCharts('dashboard-sales-chart', 'dashboard-products-chart', 'dashboard');
         }
 
-        function quickStockAdd(id) {
-            products = products.map(p => p.id === id ? { ...p, stock: p.stock + 5 } : p);
-            refreshAll();
-            toast("Added +5 units to stock");
-        }
+
 
         function getInventoryView() {
             try { return localStorage.getItem('styve-inventory-view') === 'list' ? 'list' : 'grid'; }
