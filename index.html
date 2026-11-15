@@ -1845,15 +1845,22 @@ if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){n
             renderOrderCart();
         }
 
+        function removeOrderCartItem(index) {
+            if (!Number.isInteger(index) || index < 0 || index >= orderCart.length) return;
+            orderCart.splice(index, 1);
+            renderOrderCart();
+        }
+
         function renderOrderCart() {
             const container = document.getElementById('order-cart-items');
             let total = 0;
             if (!orderCart.length) {
                 container.innerHTML = `<p class="text-slate-500 text-xs italic">No items added yet.</p>`;
             } else {
-                container.innerHTML = orderCart.map((item) => {
-                    total += item.price * item.qty;
-                    return `<div class="flex justify-between items-center text-xs bg-slate-900 p-2 rounded-lg border border-slate-800 text-slate-200 gap-3"><span class="min-w-0"><span class="block font-semibold">${item.name} <strong class="text-pink-400">x${item.qty}</strong></span>${item.sku ? `<span class="block text-[10px] text-slate-400 mt-0.5">SKU: ${item.sku}</span>` : ''}</span><span class="font-bold whitespace-nowrap">MVR ${(item.price * item.qty).toFixed(2)}</span></div>`;
+                container.innerHTML = orderCart.map((item, index) => {
+                    const lineTotal = Number(item.price || 0) * Number(item.qty || 0);
+                    total += lineTotal;
+                    return `<div class="flex justify-between items-center text-xs bg-slate-900 p-2 rounded-lg border border-slate-800 text-slate-200 gap-3"><span class="min-w-0 flex-1"><span class="block font-semibold">${item.name} <strong class="text-pink-400">x${item.qty}</strong></span>${item.sku ? `<span class="block text-[10px] text-slate-400 mt-0.5">SKU: ${item.sku}</span>` : ''}</span><span class="font-bold whitespace-nowrap">MVR ${lineTotal.toFixed(2)}</span><button type="button" onclick="removeOrderCartItem(${index})" aria-label="Remove ${String(item.name || 'product').replace(/&/g, '&amp;').replace(/"/g, '&quot;')} from cart" title="Remove product" class="shrink-0 px-2 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 font-semibold"><i class="fa-solid fa-trash-can"></i><span class="ml-1">Remove</span></button></div>`;
                 }).join('');
             }
             document.getElementById('order-grand-total').textContent = `MVR ${total.toFixed(2)}`;
